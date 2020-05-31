@@ -1,0 +1,14 @@
+result="Apache 웹서비스 정보 숨김:양호:중"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	Count=`cat $path | grep "^<Directory" | wc -l`
+	Cnt=`cat $path | grep -i "ServerTokens Prod" | wc -l`
+	if [ $Count -gt $Cnt ]
+	then
+		result="Apache 웹서비스 정보 숨김:취약:중"
+	fi
+fi
+
+echo $result

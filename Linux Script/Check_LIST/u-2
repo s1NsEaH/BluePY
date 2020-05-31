@@ -1,0 +1,23 @@
+path="/etc/security/pwquality.conf"
+List=(minlen lcredit ucredit dcredit ocredit)
+result="패스워드 복잡성 설정:양호:상"
+flag=0
+
+for i in `echo ${List[*]}`
+do
+	cat $path | grep "^# $i" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		Comment+=$i' '
+		flag=1
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	result="패스워드 복잡성 설정:취약:상"
+	echo "[U-2]패스워드 복잡성 설정:취약"
+	echo $Comment
+fi
+
+echo $result

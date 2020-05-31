@@ -1,0 +1,11 @@
+result="DNS 보안 버전 패치:양호:상"
+yum list installed | grep "^bind" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="DNS 보안 버전 패치:수동판단:상"
+	Comment=`named -version`
+	echo "[U-50]DNS 보안 버전 패치:수동판단"
+	echo $Comment
+fi
+
+echo $result

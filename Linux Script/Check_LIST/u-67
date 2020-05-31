@@ -1,0 +1,30 @@
+result="로그온 시 경고 메시지 제공:양호:하"
+flag=0
+find /etc/motd -size 0 | fgrep motd >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="로그온 시 경고 메시지 제공:취약:하"
+	Comment="/etc/motd"
+	flag=1
+fi
+
+path="/etc/issue.net"
+if [ -f "$path" ]
+then
+	cat $path | grep "^Kernel" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="로그온 시 경고 메시지 제공:취약:하"
+		Comment+=" $path"
+		flag=1
+	fi
+fi
+
+echo $result
+
+if [ $flag -eq 1 ]
+then
+	Comment="취약 경로:$Comment"
+	echo "[U-67]로그온 시 경고 메시지 제공:취약"
+	echo $Comment
+fi

@@ -1,0 +1,28 @@
+result="RPC 서비스 확인:양호:상"
+flag=0
+Needless=(rpc.cmsd rusersd rstatd rpc.ttdbserverd kcms_server\
+ Walld rpc.nids rpc.ypupdated cachefsd sadmind sprayd\
+ rpc.pcnfsd rexd rpc.rquotad)
+
+for Service in ${Needless[*]}
+do
+	if [ -f "/etc/xinetd.d/$Service" ]
+	then
+		ls -l /etc/xinetd.d/ | grep "$Service" >> /dev/null
+		if [ $? -eq 0 ]
+		then
+			result="RPC 서비스 확인:취약:상"
+			RiskService+=$Service" "
+			flag=1
+		fi
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	Comment="불필요한 서비스:$RiskService"
+	echo "[U-44]RPC 서비스 확인:취약"
+	echo $Comment
+fi
+
+echo $result

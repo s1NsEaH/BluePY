@@ -1,0 +1,18 @@
+result="$HOME/.rhosts, hosts.equiv 사용 금지:취약:상"
+Remote="/etc/hosts.equiv"
+if [ -f "$Remote" ]
+then
+	find $Remote -user root -perm 600 | grep $Remote >> /dev/null
+	A=$?
+	find $HOME/.rhosts -user root -perm 600\
+	| grep "$HOME/.rhosts" >> /dev/null
+	B=$?
+	if [[ $A -eq 0 ]] && [[ $B -eq 0 ]]
+	then
+		result="$HOME/.hosts, hosts.equiv 사용 금지:양호:상"
+	fi
+else
+result="$HOME/.hosts, hosts.equiv 사용 금지:양호:상"
+fi
+
+echo $result

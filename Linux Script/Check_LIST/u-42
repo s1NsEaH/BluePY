@@ -1,0 +1,18 @@
+result="NFS 접근통제:취약:상"
+ps -ef | grep nfsd | grep -v grep >> /dev/null
+if [ $? -eq 0 ]
+then
+	if [ -f "/etc/exports" ]
+	then
+		find /etc/exports -size 0 | grep "/etc/exports" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="NFS 접근통제:수동판단:상"
+		fi
+	fi
+else
+	result="NFS 접근통제:양호:상"
+	
+fi
+
+echo $result

@@ -1,0 +1,8 @@
+result="/etc/shadow 파일 소유자 및 권한 설정:취약:상"
+find /etc/shadow -user root -perm 400 | fgrep -o /etc/shadow >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="/etc/shadow 파일 소유자 및 권한 설정:양호:상"
+fi
+echo $result
+

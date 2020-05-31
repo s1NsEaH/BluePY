@@ -1,0 +1,13 @@
+result="NFS 설정파일 접근권한:양호:중"
+path="/etc/exports"
+if [ -f "$path" ]
+then
+	find $path -user root \( -perm 644 -o -perm 640 -o -perm 600 \)\
+	| fgrep "$path" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="NFS 설정파일 접근권한:취약:중"
+	fi
+fi
+
+echo $result

@@ -1,0 +1,14 @@
+result="Session Timeout 설정:양호:하"
+FIND=`cat /etc/profile | grep TMOUT`
+if [ $? -eq 0 ]
+then
+	TIME=`echo $FIND | awk -F= '{ print $2 }'`
+	if [ $TIME -gt 600 ]
+	then
+		result="Session Timeout 설정:취약:하"
+	fi
+else
+	result="Session Timeout 설정:취약:하"
+fi
+
+echo $result

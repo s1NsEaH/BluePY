@@ -1,0 +1,9 @@
+path="/etc/login.defs"
+result="패스워드 최소 길이 설정:양호:중"
+Len=`cat $path | grep "^PASS_MIN_LEN" | awk -F" " '{ print $2 }'`
+if [ $Len -lt 8 ]
+then
+	result="패스워드 최소 길이 설정:취약:중"
+fi
+
+echo $result

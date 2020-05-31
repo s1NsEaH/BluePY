@@ -1,0 +1,19 @@
+path="/etc/passwd"
+DontNeed="'adm|lp|sync|shutdown|halt|news|uucp|operator|\
+games|gopher|nfsnobody|squid'"
+result="불필요한 계정 제거:수동판단:하"
+
+Needless=`awk -F: '{ print $1 }' $path | egrep $DontNeed`
+Needless="일반적으로 불필요한 계정유무: $Needless"
+
+Accounts=`cat $path | egrep -v $DontNeed'|root'\
+| grep -v "nologin" | awk -F: '{ print $1 }'`
+Accounts="그 외 수동판단 계정: $Accounts"
+
+#Comment="$Needless"$'\n'$Accounts
+#echo "$Comment"
+
+echo $result
+echo "[U-10]불필요한 계정 제거:수동판단"
+echo $Needless
+echo $Accounts

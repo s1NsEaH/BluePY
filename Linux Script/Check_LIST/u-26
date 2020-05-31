@@ -1,0 +1,7 @@
+result="world writable 파일 점검:수동판단:상"
+Comment=`find / -wholename '/proc' -prune -o -wholename '/sys' -prune\
+ -o -type f -perm -0002 -exec ls -l {} \;`
+echo $result
+echo "[U-26]world writable 파일 점검:수동판단"
+echo "$Comment"
+

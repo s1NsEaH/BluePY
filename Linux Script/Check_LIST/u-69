@@ -1,0 +1,13 @@
+result="일반사용자의 Sendmail 실행 방지:양호:상"
+path=`find /etc -name "sendmail.cf"`
+if [ -f "$path" ]
+then
+	cat $path | fgrep -i "PrivacyOptions"\
+	| fgrep novrfy | fgrep noexpn >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="일반사용자의 Sendmail 실행 방지:취약:상"
+	fi
+fi
+
+echo $result

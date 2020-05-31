@@ -1,0 +1,9 @@
+path="/etc/ssh/sshd_config"
+result="root 계정 원격 접속 제한:취약:상"
+cat $path | grep -i "^PermitRootLogin no$" >> /dev/null
+if [ $? -eq 0 ]
+then
+result="root 계정 원격 접속 제한:양호:상"
+fi
+
+echo $result

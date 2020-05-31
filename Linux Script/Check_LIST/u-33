@@ -1,0 +1,28 @@
+result="홈 디렉터리 소유자 및 권한 설정:취약:중"
+Accounts=`ls /home`
+for ID in $Accounts
+do
+	Home=`cat /etc/passwd | grep "^$ID" | awk -F: '{ print $6 }'`
+	echo $Home | grep "$ID" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		FaultHome+=$ID" "
+	fi
+
+	find /home/$ID -type d -perm -o=w | grep "$ID" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		RiskPerm+=$ID" "
+	fi
+done
+
+Counts=`echo $FaultHome$RiskPerm | wc -w`
+if [ $Counts -eq 0 ]
+then
+	result="홈 디렉터리 소유자 및 권한 설정:양호:중"
+else
+	Comment=FaultHomeID:$FaultHome$'\n'RiskPermID:$RiskPerm
+	echo "[U-33]홈 디렉터리 소유자 및 권한 설정:취약"
+	echo "$Comment"
+fi
+echo $result

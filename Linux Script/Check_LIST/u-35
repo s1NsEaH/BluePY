@@ -1,0 +1,6 @@
+result="숨겨진 파일 및 디렉터리 검색 및 제거:수동판단:하"
+Comment=`find / -wholename '/sys' -prune -o -name ".*" -mtime -720 | grep -v ".bash"`
+
+echo $result
+echo "[U-35]숨겨진 파일 및 디렉터리 검색 및 제거:수동판단"
+echo "$Comment"

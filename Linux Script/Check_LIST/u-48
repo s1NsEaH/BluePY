@@ -1,0 +1,13 @@
+result="스팸 메일 릴레이 제한:양호:상"
+yum list installed | grep sendmail >> /dev/null
+if [ $? -eq 0 ]
+then
+	cat /etc/mail/sendmail.cf | grep "550 Relaying denied"\
+	| grep "^#R$\*" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="스팸 메일 릴레이 제한:취약:상"
+	fi
+fi
+
+echo $result

@@ -1,0 +1,6 @@
+result="사용자 shell 점검:수동판단:하"
+Comment=`cat /etc/passwd | grep -v nologin | awk -F: '{ print $1,$7 }'`
+echo $result
+echo "[U-14]사용자 shell 점검:수동판단"
+echo "$Comment"
+

@@ -1,0 +1,14 @@
+result="Apache 파일 업로드 및 다운로드 제한:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	Count=`cat $path | grep "^<Directory" | wc -l`
+	Cnt=`cat $path | grep -i "LimitRequestBody" | wc -l`
+	if [ $Count -gt $Cnt ]
+	then
+		result="Apache 파일 업로드 및 다운로드 제한:취약:상"
+	fi
+fi
+
+echo $result

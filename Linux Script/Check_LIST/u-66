@@ -1,0 +1,12 @@
+path=`find /etc -name snmpd.conf`
+result="SNMP 서비스 Commnunity String의 복잡성 설정:양호:중"
+if [ -f "$path" ]
+then
+	cat $path | fgrep -v "#" | egrep "public$|private$" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="SNMP 서비스 Commnunity String의 복잡성 설정:취약:중"
+	fi
+fi
+
+echo $result

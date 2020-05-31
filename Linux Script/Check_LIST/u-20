@@ -1,0 +1,8 @@
+result="/etc/hosts 파일 소유자 및 권한 설정:취약:상"
+find /etc/hosts -user root -perm 600 | fgrep -o /etc/hosts >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="/etc/hosts 파일 소유자 및 권한 설정:양호:상"
+fi
+echo $result
+

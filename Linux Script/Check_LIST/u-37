@@ -1,0 +1,24 @@
+result="Anonymous FTP 비활성화:취약:상"
+yum list installed | egrep -i "^ftp|^proftp|^vsftp" >> /dev/null
+if [ $? -eq 0 ]
+then
+	FILEpath=`find /etc -name "vsftpd.conf"`
+	if [ -f "$FILEpath" ]
+	then
+		cat $FILEpath | grep -i "^anonymous_enable=NO" >> /dev/null
+		if [ $? -eq 0 ]
+		then
+			result="Anonymous FTP 비활성화:양호:상"
+		fi
+	else
+		cat /etc/passwd | egrep "^ftp|^anonymous" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="Anonymous FTP 비활성화:양호:상"
+		fi
+	fi
+else
+	result="Anonymous FTP 비활성화:양호:상"
+fi
+
+echo $result

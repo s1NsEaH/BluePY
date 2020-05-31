@@ -1,0 +1,28 @@
+result="r계열 서비스 비활성화:양호:상"
+RiskFile=`find /etc -name rlogin`" "
+RiskFile+=`find /etc -name rsh`" "
+RiskFile+=`find /etc -name rexec`
+flag=0
+for FILE in $RiskFile 
+do
+	if [ -f "$FILE" ]
+	then
+		cat $FILE | grep "disable" | awk -F= '{ print $2 }'\
+		 | grep "yes" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="r계열 서비스 비활성화:취약:상"
+			Risk+=$FILE" "
+			flag=1
+		fi
+	fi
+done		
+
+if [ $flag -eq 1 ]
+then
+	Comment="RiskFile:$Risk"
+	echo "[U-38]r계열 서비스 비활성화:취약"
+	echo $Comment
+fi
+
+echo $result

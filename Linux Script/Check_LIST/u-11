@@ -1,0 +1,9 @@
+path="/etc/group"
+result="관리자 그룹에 최소한의 계정 포함:수동판단:하"
+
+Root=`cat /etc/group | grep ^root | awk -F[:] '{ print $4 }'`
+Comment="root group:$Root"
+
+echo $result
+echo "[U-11]관리자 그룹에 최소한의 계정 포함:수동판단"
+echo $Comment

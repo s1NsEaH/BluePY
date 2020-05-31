@@ -1,0 +1,9 @@
+result="ftp 계정 shell 제한:양호:중"
+Shell=`cat /etc/passwd | grep ^ftp | awk -F: '{ print $7 }'`
+echo $Shell | egrep -v "nologin$|false$" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="ftp 계정 shell 제한:취약:중"
+fi
+
+echo $result

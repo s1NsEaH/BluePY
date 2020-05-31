@@ -1,0 +1,9 @@
+result="NIS, NIS+ 점검:양호:상"
+ps -ef | egrep "ypserv|ypbind|ypxfrd|rpc.yppasswdd|rpc.ypupdated"\
+ | grep -v "grep" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="NIS, NIS+ 점검:취약:상"
+fi
+
+echo $result

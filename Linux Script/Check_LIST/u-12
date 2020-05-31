@@ -1,0 +1,22 @@
+Group=`awk -F: '{ print $4 }' /etc/group`
+GID=`cat /etc/passwd | grep -v "^root" | awk -F: '{ print $1 }'` 
+result="계정이 존재하지 않는 GID 금지:양호:하"
+flag=0
+
+for i in $Group
+do
+	echo "$i" | grep -o "$GID" >> /dev/null
+	if [ $? -eq 1 ]
+	then
+		Comment+=$i" "
+		result="계정이 존재하지 않는 GID 금지:취약:하"
+		flag=1
+	fi
+done
+
+echo $result
+
+if [ $flag -eq 1 ]
+then
+	echo $Comment
+fi

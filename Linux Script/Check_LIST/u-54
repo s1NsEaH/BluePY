@@ -1,0 +1,14 @@
+result="Apache 상위 디렉터리 접근 금지:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	cat $path | fgrep "AllowOverride" | grep -v "#"\
+	 | egrep -i -v "AuthConfig$|All$" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Apache 상위 디렉터리 접근 금지:취약:상"
+	fi
+fi
+
+echo $result

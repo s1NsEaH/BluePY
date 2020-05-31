@@ -1,0 +1,24 @@
+result="ftpusers 파일 소유자 및 권한 설정:양호:하"
+path=`find /etc -name ftpusers`
+if [ -f "$path" ]
+then
+	find $path -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "ftpusers" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ftpusers 파일 소유자 및 권한 설정:취약:하"
+	fi
+fi
+
+path=`find /etc -name "user_list"`
+if [ -f "$path" ]
+then
+	find $path -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "user_list" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ftpusers 파일 소유자 및 권한 설정:취약:하"
+	fi
+fi
+
+echo $result

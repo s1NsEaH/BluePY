@@ -1,0 +1,25 @@
+result="tftp, talk 서비스 비황성화:양호:상"
+RiskFile=`find /etc -name tftp`" "
+RiskFile+=`find /etc -name talk`" "
+RiskFile+=`find /etc -name ntalk`" " 
+
+for FILE in $RiskFile
+do
+	if [ -f "$FILE" ]
+	then
+		cat $FILE | grep "disable" | awk -F= '{ print $2 }'\
+		 | grep "yes" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="tftp, talk 서비스 비활성화:취약:상"
+		fi
+	fi
+done
+
+ps -ef | egrep "tftp|talk" | grep -v "grep" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="tftp, talk 서비스 비활성화:취약:상"
+fi
+
+echo $result

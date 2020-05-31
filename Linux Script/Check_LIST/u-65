@@ -1,0 +1,8 @@
+result="SNMP 서비스 구동 점검:양호:중"
+ps -ef | fgrep snmp | grep -v "grep" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="SNMP 서비스 구동 점검:취약:중"
+fi
+
+echo $result

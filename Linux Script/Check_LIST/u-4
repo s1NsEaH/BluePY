@@ -1,0 +1,10 @@
+path="/etc/passwd"
+result="패스워드 파일 보호:취약:상"
+cat $path | grep ^root:x >> /dev/null
+
+if [ $? -eq 0 ]
+then
+	result="패스워드 파일 보호:양호:상"
+fi
+
+echo $result

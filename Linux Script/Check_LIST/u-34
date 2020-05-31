@@ -1,0 +1,22 @@
+result="홈 디렉터리로 지정한 디렉터리의 존재 관리:양호:중"
+Accounts=`ls /home`
+flag=0
+for ID in $Accounts
+do
+	Home=`cat /etc/passwd | grep "^$ID" | awk -F: '{ print $6 }'`
+	if [ "$Home" == "" ]
+	then
+		result="홈 디렉터리로 지정한 디렉터리의 존재 관리:취약:중"
+		RiskID=$ID" "
+		flag=1
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	Comment="Not exist home:$ID"
+	echo "[U-34]홈 디렉터리로 지정한 디렉터리의 존재 관리:취약"
+	echo $Comment
+fi
+
+echo $result

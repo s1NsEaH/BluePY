@@ -1,0 +1,22 @@
+result="ftpusers 파일 설정:양호:중"
+path=`find /etc -name ftpusers`
+if [ -f "$path" ]
+then
+	cat $path | grep ^root >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ftpusers 파일 설정:취약:중"
+	fi
+fi
+
+path=`find /etc -name proftpd.conf`
+if [ -f "$path" ]
+then
+	cat $path | grep -i ^RootLogin | fgrep off >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ftpusers 파일 설정:취약:중"
+	fi
+fi
+
+echo $result

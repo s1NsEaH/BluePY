@@ -1,0 +1,21 @@
+result="at 파일 소유자 및 권한 설정:양호:상"
+if [ -f "/etc/at.deny" ]
+then
+	find /etc/at.deny -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "at.deny" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="at 파일 소유자 및 권한 설정:취약:상"
+	fi
+fi
+if [ -f "/etc/at.allow" ]
+then
+	find /etc/at.allow -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "at.allow" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="at 파일 소유자 및 권한 설정:취약:상"
+	fi
+fi
+
+echo $result	

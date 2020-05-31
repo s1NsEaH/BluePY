@@ -1,0 +1,9 @@
+result="Shell Shock 패치 관리:취약:상"
+Test=`env x='() { :;}; echo vulnerable' bash -c "echo Check"`
+Cnt=`echo $Test | wc -w`
+if [ $Cnt -eq 1 ]
+then
+	result="Shell Shock 패치 관리:양호:상"
+fi
+
+echo $result

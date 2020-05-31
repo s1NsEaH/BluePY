@@ -1,0 +1,29 @@
+result="DoS 공격에 취약한 서비스 비활성화:양호:상"
+RiskFile=`find /etc -name echo`" "
+RiskFile+=`find /etc -name discard`" "
+RiskFile+=`find /etc -name daytime`" "
+RiskFile+=`find /etc -name chargen`
+flag=0
+for FILE in $RiskFile 
+do
+	if [ -f "$FILE" ]
+	then
+		cat $FILE | grep "disable" | awk -F= '{ print $2 }'\
+		 | grep "yes" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="DoS 공격에 취약한 서비스 비활성화:취약:상"
+			Risk+=$FILE" "
+			flag=1
+		fi
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	Comment="RiskFile:$Risk"
+	echo "[U-40]DoS 공격에 취약한 서비스 비활성화:취약"
+	echo $Comment
+fi
+
+echo $result

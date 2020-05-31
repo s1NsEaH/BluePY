@@ -1,0 +1,12 @@
+result="/dev에 존재하지 않는 device 파일 점검:양호:상"
+Comment=`find /dev -type f -exec ls -l {} \;`
+Count=`find /dev -type f | wc -l`
+
+if [ $Count -ne 0 ]
+then
+	result="/dev에 존재하지 않는 device 파일 점검:취약:상"
+	echo "[U-27]/dev에 존재하지 않는 device 파일 점검:취약"
+	echo "$Comment"
+fi
+
+echo $result

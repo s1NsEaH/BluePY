@@ -1,0 +1,8 @@
+result="Apache 불필요한 파일 제거:양호:상"
+find / -name manual | grep http >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="Apache 불필요한 파일 제거:취약:상"
+fi
+
+echo $result

@@ -1,0 +1,13 @@
+path="/etc/syslog.conf"
+find $path -size 0 | fgrep "$path" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="정책에 따른 시스템 로깅 설정:취약:하"
+else
+	result="정책에 따른 시스템 로깅 설정:수동판단:하"
+	echo "[U-74]정책에 따른 시스템 로깅 설정:수동판단"
+	Comment=`cat $path`
+	echo "$path $Comment" | sed "s/ /\n/"
+fi
+
+echo $result

@@ -1,0 +1,9 @@
+path="/etc/login.defs"
+result="패스워드 최소 사용기간 설정:양호:중"
+Len=`cat $path | grep "^PASS_MIN_DAYS" | awk -F" " '{ print $2 }'`
+if [ $Len -ne 1 ]
+then
+	result="패스워드 최소 사용기간 설정:취약:중"
+fi
+
+echo $result

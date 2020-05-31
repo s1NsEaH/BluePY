@@ -1,0 +1,13 @@
+result="hosts.lpd 파일 소유자 및 권한 설정:취약:하"
+if [ -f "/etc/hosts.lpd" ]
+then
+	find /etc/hosts.lpd -user root -perm 600 | grep "hosts.lpd" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="hosts.lpd 파일 소유자 및 권한 설정:양호:하"
+	fi
+else
+	result="hosts.lpd 파일 소유자 및 권한 설정:양호:하"
+fi
+
+echo $result

@@ -1,0 +1,18 @@
+path="/etc/passwd"
+result="root 이외의 UID가 '0' 금지:양호:중"
+flag=0
+awk -F[:] '$3 == 0' $path | fgrep -v "root" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="root 이외의 UID가 '0' 금지:취약:중"
+	Comment=`awk -F[:] '$3 == 0' $path | fgrep -v "root"`
+	flag=1
+fi
+
+echo $result
+
+if [ $flag -eq 1 ]
+then
+	echo "[U-5]root 이외의 UID가 '0' 금지:취약"
+	echo $Comment | sed "s/ /\n/"
+fi

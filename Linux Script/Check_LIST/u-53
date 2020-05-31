@@ -1,0 +1,13 @@
+result="Apache 웹 프로세스 권한 제한:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	cat $path | egrep "^User|^Group" | grep root >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Apache 웹 프로세스 권한 제한:취약:상"
+	fi
+fi
+
+echo $result

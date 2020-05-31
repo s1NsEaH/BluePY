@@ -1,0 +1,9 @@
+path="/etc/login.defs"
+result="패스워드 최대 사용기간 설정:취약:중"
+Len=`cat $path | grep "^PASS_MAX_DAYS" | awk -F" " '{ print $2 }'`
+if [ $Len -le 90 ]
+then
+	result="패스워드 최소 길이 설정:양호:중"
+fi
+
+echo $result

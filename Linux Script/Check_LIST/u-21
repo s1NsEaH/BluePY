@@ -1,0 +1,42 @@
+result="/etc/(x)inetd.conf 파일 소유자 및 권한 설정:취약:상"
+find /etc/inetd.conf 2> /dev/null | fgrep -o /etc/inetd.conf >> /dev/null
+A=$?
+find /etc/xinetd.d 2> /dev/null | fgrep -o /etc/xinetd.d >> /dev/null
+B=$?
+find /etc/xinetd.conf 2> /dev/null | fgrep -o /etc/xinetd.conf >> /dev/null
+C=$?
+
+find /etc/xinetd.d -user root -perm 600 2>\
+/dev/null | fgrep -o /etc/xinetd.d >> /dev/null
+BC=$?
+find /etc/xinetd.conf -user root -perm 600 2>\
+/dev/null | fgrep -o /etc/xinetd.conf >> /dev/null
+CB=$?
+
+if [ $A -eq 0 ]
+then
+	find /etc/inetd.conf -user root -perm 600 2>\
+	 /dev/null | fgrep -o /etc/inetd.conf >> /dev/null
+	if [ $? -eq 0 ]; then
+		result="/etc/inetd.conf 파일 소유자 및 권한 설정:양호:상"
+	fi
+elif [[ $B -eq 0 ]] && [[ $C -ne 0 ]]
+then
+	if [ $BC -eq 0 ]; then
+		result="/etc/xinetd.d 파일 소유자 및 권한 설정:양호:상"
+	fi
+elif [[ $C -eq 0 ]] && [[ $B -ne 0 ]]
+then
+	if [ $CB -eq 0 ]; then
+		result="/etc/xinetd.conf 파일 소유자 및 권한 설정:양호:상"
+	fi
+elif [[ $B -eq 0 ]] && [[ $C -eq 0 ]]
+then 
+	if [[ $BC -eq 0 ]] && [[ $CB -eq 0 ]]; then
+		result="/etc/(x)inetd.conf 파일 소유자 및 권한 설정:양호:상"
+	fi
+else
+result="/etc/(x)inetd.conf 파일 소유자 및 권한 설정:양호:상"
+
+fi
+echo $result

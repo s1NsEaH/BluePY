@@ -1,0 +1,8 @@
+result="UMASK 설정 관리:취약:중"
+UMASK=`umask`
+if [ $UMASK == "0022" ]
+then
+	result="UMASK 설정 관리:양호:중"
+fi
+
+echo $result

@@ -1,0 +1,13 @@
+NoOwner=`find / -nouser -o -nogroup 2> /dev/null`
+result="파일 및 디렉터리 소유자 설정:취약:상"
+Word=`echo $NoOwner | wc -w`
+if [ $Word -eq 0 ]
+then
+	result="파일 및 디렉터리 소유자 설정:양호:상"
+else
+	Comment="File List:"$NoOwner
+	echo "[U-17]파일 및 디렉터리 소유자 설정:취약"
+	echo $Comment
+fi
+
+echo $result

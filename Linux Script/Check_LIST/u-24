@@ -1,0 +1,6 @@
+result="SUID, SGID, Sticky bit 설정파일 점검:수동판단:상"
+Comment=`find / -user root -type f \( -perm -4000 -o -perm -2000 \)\
+ -xdev -exec ls -al {} 2> /dev/null \;`
+echo $result
+echo "[U-24]SUID, SGID, Sticky bit 설정파일 점검:수동판단"
+echo "$Comment"

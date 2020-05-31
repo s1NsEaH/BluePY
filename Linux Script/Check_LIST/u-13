@@ -1,0 +1,29 @@
+path="/etc/passwd"
+UniqID=`awk -F: '{ print $3 }' $path | sort -n | uniq -c`
+result="동일한 UID 금지:양호:중"
+Line=`echo $UniqID | wc -w`
+odd=1;len=0
+
+for ((odd=1;odd<$Line+1;odd+=2))
+do
+	Number=`echo $UniqID | awk -v odd=$odd -F" " '{ print $odd }'`
+	if [ $Number -ne 1 ]
+	then
+		len=`expr $odd + 1`
+		result="동일한 UID 금지:취약:중"
+		NotUniq+=`echo $UniqID | awk -v len=$len -F" " '{ print $len }'`" "
+	fi
+done
+
+for i in $NotUniq
+do
+	Comment+=`awk -F: '{ print $3,$1}' $path | grep "^$i\b"`" "
+done
+
+echo $result
+
+if [ $len -ne 0 ]
+then
+	echo "[U-13]동일한 UID 금지:취약"
+	echo "동일 UID 사용 계정(UID / Accounts):"$Comment
+fi

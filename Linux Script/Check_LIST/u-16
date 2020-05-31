@@ -1,0 +1,16 @@
+File=`find ~/ -name *profile -o -name ".login"`
+result="root 홈, 패스 디렉터리 권한 및 패스 설정:양호:상"
+Ban_Dot=`cat $File | grep "^PATH=" | awk -F= '{ print $2 }'`
+echo $Ban_Dot | grep '\.' >> /dev/null
+Boolean=$?
+
+Ban=`cat $File | grep "^PATH=" | awk -F\$ '{ print $1 }'`
+echo $Ban | egrep '\.|:' >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="root 홈, 패스 디렉터리 권한 및 패스 설정:취약:상"
+elif [ $Boolean -eq 0 ]
+then
+	result="root 홈, 패스 디렉터리 권한 및 패스 설정:취약:상"
+fi
+echo $result

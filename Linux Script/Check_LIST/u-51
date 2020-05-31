@@ -1,0 +1,12 @@
+result="DNS Zone Transfer 설정:취약:상"
+Options=`cat /etc/named.conf | grep ^options | wc -l`
+Zone=`cat /etc/named.conf | grep ^zone | wc -l`
+Add=`expr $Options + $Zone`
+Allow=`cat /etc/named.conf | grep "allow-transfer" | wc -l`
+
+if [ $Add -eq $Allow ]
+then
+	result="DNS Zone Transfer 설정:양호:상"
+fi
+
+echo $result

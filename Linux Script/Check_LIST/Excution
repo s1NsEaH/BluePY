@@ -1,0 +1,14 @@
+if [ -f "./RESULT.txt" ]
+then
+	rm -rf ./RESULT.txt
+fi
+
+for((i=1;i<75;i++)); do
+
+echo "-----------u-$i-------------" >> ./RESULT.txt
+bash u-$i >> ./RESULT.txt
+
+done
+
+cat ./RESULT.txt | egrep -v "상$|중$|하$" > ./Comment.txt
+cat ./RESULT.txt | egrep "상$|중$|하$" > ./OriginLine.txt

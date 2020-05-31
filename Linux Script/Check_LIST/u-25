@@ -1,0 +1,29 @@
+result="사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정:양호:상"
+Accounts=`ls /home`
+flag=0
+for ID in $Accounts
+do
+	find /home/$ID/ ! \( -user root -o -user $ID \)\
+	 2> /dev/null >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		RiskID+="/home/"$ID" "
+		flag=1
+	fi
+	RiskPerm=`find /home/$ID -perm -2 -exec ls {} \;`
+	if [ $? -eq 0 ]
+	then
+		FilePath+=$RiskPerm" "
+		flag=1
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	result="사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정:취약:상"
+	Comment=RiskID:$RiskID$'\n'RiskPerm:"$FilePath"
+	echo "[U-25]사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정:취약"
+	echo "$Comment"
+fi
+
+echo $result

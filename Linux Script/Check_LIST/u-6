@@ -1,0 +1,13 @@
+path="/etc/pam.d/su"
+result="root 계정 su 제한:취약:하"
+cat $path | grep -v "#" | grep "pam_wheel.so use_uid" >> /dev/null
+if [ $? -eq 0 ]
+then 
+	result="root 계정 su 제한:양호:하"
+	Wheel=`cat /etc/group | grep ^wheel | awk -F[:] '{ print $4 }'`
+	Comment="wheel group:$Wheel"
+	echo "[U-6]root 계정 su 제한:양호"
+	echo $Comment
+fi
+
+echo $result

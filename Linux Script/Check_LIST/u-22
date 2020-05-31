@@ -1,0 +1,16 @@
+result="/etc/syslog.conf 파일 소유자 및 권한 설정:취약:상"
+find /etc/syslog.conf 2> /dev/null | fgrep -o /etc/syslog.conf >> /dev/null
+if [ $? -eq 0 ]
+then
+	find /etc/syslog.conf -user root \( -perm 644 -o -perm 600 \) 2>\
+	 /dev/null | fgrep -o /etc/syslog.conf >> /dev/null
+	if [ $? -eq 0 ]
+	then	
+		result="/etc/syslog.conf 파일 소유자 및 권한 설정:양호:상"
+	else
+		result="/etc/syslog.conf 파일 소유자 및 권한 설정:취약:상"
+	fi
+else
+	result="/etc/syslog.conf 파일 소유자 및 권한 설정:양호:상"
+fi
+echo $result

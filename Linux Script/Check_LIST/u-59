@@ -1,0 +1,14 @@
+result="ssh 원격접속 허용:양호:중"
+PTS=`who | awk -F" " '{ print $2 }'`
+Confirm=`ps -ef | grep sshd: | grep -v "grep"`
+
+for Ssh in $PTS
+do
+	echo "$Confirm" | grep $Ssh >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ssh 원격접속 허용:취약:중"
+	fi
+done
+
+echo $result

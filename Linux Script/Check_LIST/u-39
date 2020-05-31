@@ -1,0 +1,22 @@
+result="cron 파일 소유자 및 권한 설정:양호:상"
+if [ -f "/etc/cron.deny" ]
+then
+	find /etc/cron.deny -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "cron.deny" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="cron 파일 소유자 및 권한 설정:취약:상"
+	fi
+fi
+
+if [ -f "/etc/cron.allow" ]
+then
+	find /etc/cron.allow -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "cron.allow" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="cron 파일 소유자 및 권한 설정:취약:상"
+	fi
+fi
+
+echo $result	

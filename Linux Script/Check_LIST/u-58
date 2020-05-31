@@ -1,0 +1,13 @@
+result="Apache 웹 서비스 영역의 분리:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	cat $path | grep "^DocumentRoot" | grep "htdocs\"$" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Apache 웹 서비스 영역의 분리:취약:상"
+	fi
+fi
+
+echo $result

@@ -1,0 +1,21 @@
+result="Sendmail 버전 점검:취약:상"
+Version=`yum list installed | grep sendmail\
+ | awk -F" " '{ print $2 }'\
+ | awk -F. '{ print $1,$2,$3 }'`
+
+Add=`echo $Version | awk -F" " '{ print $1+$2 }'`
+
+if [ $Add -eq 21 ]
+then
+	third=`echo $Version | awk -F" " '{ print $3 }'\
+	| awk -F- '{ print $1 }'`
+	if [ $third -ge 8 ]
+	then
+		result="Sendmail 버전 점검:양호:상"
+	fi
+elif [ $Add -ge 22 ]
+then
+	result="Sendmail 버전 점검:양호:상"
+fi
+
+echo $result

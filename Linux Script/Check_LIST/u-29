@@ -1,0 +1,12 @@
+result="접속 IP 및 포트 제한:취약:상"
+Limit="/etc/hosts.deny"
+if [ -f "$Limit" ]
+then
+	cat $Limit | grep -i "ALL:ALL" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="접속 IP 및 포트 제한:양호:상"
+	fi
+fi
+
+echo $result

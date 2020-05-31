@@ -1,0 +1,108 @@
+[U-2]패스워드 복잡성 설정:취약
+minlen lcredit ucredit dcredit
+[U-5]root 이외의 UID가 '0' 금지:취약
+adm:x:0:4:adm:/var/adm:/sbin/nologin
+[U-6]root 계정 su 제한:양호
+wheel group:
+[U-10]불필요한 계정 제거:수동판단
+일반적으로 불필요한 계정유무: lp sync shutdown halt operator games
+그 외 수동판단 계정: as7293 asd im every qwe zzz
+[U-11]관리자 그룹에 최소한의 계정 포함:수동판단
+root group:hello,hollo
+root group:hello,hollohello,hollo
+[U-13]동일한 UID 금지:취약
+동일 UID 사용 계정(UID / Accounts):root group:hello,hollohello,hollo 0 root 0 adm
+[U-14]사용자 shell 점검:수동판단
+root /bin/bash
+sync /bin/sync
+shutdown /sbin/shutdown
+halt /sbin/halt
+as7293 /bin/bash
+asd /bin/bash
+im /bin/bash
+every /bin/bash
+qwe /bin/bash
+zzz /bin/bash
+[U-17]파일 및 디렉터리 소유자 설정:취약
+File List:/var/spool/mail/zxc /var/spool/at /home/zxc /home/zxc/.bash_logout /home/zxc/.bash_profile /home/zxc/.bashrc /home/zxc/.bash_history /home/zxc/asd /home/zxc/zxc
+[U-24]SUID, SGID, Sticky bit 설정파일 점검:수동판단
+-r-xr-sr-x. 1 root tty 15344  6월 10  2014 /usr/bin/wall
+-rws--x--x. 1 root root 23856 11월 20  2015 /usr/bin/chsh
+-rwsr-xr-x. 1 root root 64200  3월  6  2015 /usr/bin/chage
+-rwsr-xr-x. 1 root root 41752  3월  6  2015 /usr/bin/newgrp
+-rwxr-sr-x. 1 root tty 19536 11월 20  2015 /usr/bin/write
+-rws--x--x. 1 root root 23960 11월 20  2015 /usr/bin/chfn
+---x--s--x. 1 root nobody 306304 11월 20  2015 /usr/bin/ssh-agent
+-rwsr-xr-x. 1 root root 44232 11월 20  2015 /usr/bin/mount
+---s--x--x. 1 root root 130720 11월 21  2015 /usr/bin/sudo
+-rwsr-xr-x. 1 root wheel 32072 11월 20  2015 /usr/bin/su
+-rwsr-xr-x. 1 root root 31960 11월 20  2015 /usr/bin/umount
+---s--x---. 1 root stapusr 186792 11월 22  2015 /usr/bin/staprun
+-rwsr-xr-x. 1 root root 78168  3월  6  2015 /usr/bin/gpasswd
+-rwsr-xr-x. 1 root root 27656  6월 10  2014 /usr/bin/pkexec
+-rwsr-xr-x. 1 root root 57544  7월 27  2015 /usr/bin/crontab
+-rwsr-xr-x. 1 root root 27832  6월 10  2014 /usr/bin/passwd
+-rwxr-sr-x. 1 root mail 19824 11월 29 06:51 /usr/bin/lockfile
+-rwsr-xr-x. 1 root root 36264  8월 18  2015 /usr/sbin/unix_chkpwd
+-rwsr-xr-x. 1 root root 11208  8월 18  2015 /usr/sbin/pam_timestamp_check
+-rwxr-sr-x. 1 root root 11208 11월 20  2015 /usr/sbin/netreport
+-rwsr-xr-x. 1 root root 11272 11월 20  2015 /usr/sbin/usernetctl
+-rwxr-sr-x. 1 root postdrop 218552  6월 10  2014 /usr/sbin/postdrop
+-rwxr-sr-x. 1 root postdrop 259992  6월 10  2014 /usr/sbin/postqueue
+-rwxr-sr-x. 1 root smmsp 836936  8월  3  2017 /usr/sbin/sendmail.sendmail
+-rwsr-xr-x. 1 root root 15416  6월 10  2014 /usr/lib/polkit-1/polkit-agent-helper-1
+-rwsr-x---. 1 root dbus 318392 11월 20  2015 /usr/lib64/dbus-1/dbus-daemon-launch-helper
+-rwx--s--x. 1 root utmp 11192  6월 10  2014 /usr/libexec/utempter/utempter
+---x--s--x. 1 root ssh_keys 461416 11월 20  2015 /usr/libexec/openssh/ssh-keysign
+[U-25]사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정:취약
+RiskID:/home/as7293 /home/asd /home/qwe /home/zzz 
+RiskPerm:/home/as7293/.bash_profile     
+[U-26]world writable 파일 점검:수동판단
+-rw-r---w-. 1 root root 0  3월 14 23:02 /root/hello
+-rw-r---w-. 1 as7293 as7293 193 11월 20  2015 /home/as7293/.bash_profile
+[U-27]/dev에 존재하지 않는 device 파일 점검:취약
+-rw-r--r-- 1 root root 4  3월 14 23:12 /dev/qwe
+[U-33]홈 디렉터리 소유자 및 권한 설정:취약
+FaultHomeID:zxc 
+RiskPermID:
+[U-34]홈 디렉터리로 지정한 디렉터리의 존재 관리:취약
+Not exist home:zzz
+[U-35]숨겨진 파일 및 디렉터리 검색 및 제거:수동판단
+/run/initramfs/.need_shutdown
+/sys
+/etc/.pwd.lock
+/etc/.updated
+/root/.clt_s.c.swp
+/root/.asd
+/root/.report.txt
+/tmp/.ICE-unix
+/tmp/.Test-unix
+/tmp/.XIM-unix
+/tmp/.X11-unix
+/tmp/.font-unix
+/var/lib/rpm/.dbenv.lock
+/var/lib/rpm/.rpm.lock
+/var/cache/yum/x86_64/7/.gpgkeyschecked.yum
+/var/.updated
+/var/www/html/Check_LIST/.u-18.swp
+/usr/lib/debug/usr/.dwz
+/usr/lib64/.libhogweed.so.2.hmac
+/usr/lib64/.libnettle.so.4.hmac
+/usr/lib64/.libcrypto.so.10.hmac
+/usr/lib64/.libssl.so.10.hmac
+/usr/lib64/.libgnutls.so.28.hmac
+/usr/share/man/man1/..1.gz
+/usr/include/httpd/.mmn
+/.autorelabel
+[U-50]DNS 보안 버전 패치:수동판단
+BIND 9.9.4-RedHat-9.9.4-51.el7_4.2 (Extended Support Version)
+[U-67]로그온 시 경고 메시지 제공:취약
+취약 경로:BIND 9.9.4-RedHat-9.9.4-51.el7_4.2 (Extended Support Version) /etc/issue.net
+[U-73]로컬 권한 상승(Dirty Cow):취약
+Your kernel is 3.10.0-327.el7.x86_64 which IS vulnerable.
+[U-74]정책에 따른 시스템 로깅 설정:수동판단
+/etc/syslog.conf
+asd
+asd
+qwe
+asd

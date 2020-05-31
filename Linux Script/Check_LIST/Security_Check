@@ -1,0 +1,1775 @@
+HELP=$1
+
+Check_argv()
+{
+	echo $HELP | grep -i "help" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		echo "Usage:# bash Security_Check >> ./LINUX_REPORT.txt"
+		exit 0
+	fi
+}
+Check_argv
+
+path="/etc/ssh/sshd_config"
+result="root 계정 원격 접속 제한:취약:상"
+cat $path | grep -i "^PermitRootLogin no$" >> /dev/null
+if [ $? -eq 0 ]
+then
+result="root 계정 원격 접속 제한:양호:상"
+fi
+
+echo $result
+path="/etc/security/pwquality.conf"
+List=(minlen lcredit ucredit dcredit ocredit)
+result="패스워드 복잡성 설정:양호:상"
+flag=0
+
+for i in `echo ${List[*]}`
+do
+	cat $path | grep "^# $i" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		Comment+=$i' '
+		flag=1
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	result="패스워드 복잡성 설정:취약:상"
+	echo "[U-2]패스워드 복잡성 설정:취약"
+	echo $Comment
+fi
+
+echo $result
+path="/etc/pam.d/system-auth"
+keyword="pam_tally2.so"
+result="계정 잠금 임계값 설정:취약:상"
+
+cat $path | fgrep -v "#" | fgrep $keyword | grep "deny=[0-5] " >> /dev/null 
+if [ $? -eq 0 ]
+then 
+	result="계정 잠금 임계값 설정:양호:상"
+fi
+
+echo $result
+path="/etc/passwd"
+result="패스워드 파일 보호:취약:상"
+cat $path | grep ^root:x >> /dev/null
+
+if [ $? -eq 0 ]
+then
+	result="패스워드 파일 보호:양호:상"
+fi
+
+echo $result
+path="/etc/passwd"
+result="root 이외의 UID가 '0' 금지:양호:중"
+flag=0
+awk -F[:] '$3 == 0' $path | fgrep -v "root" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="root 이외의 UID가 '0' 금지:취약:중"
+	Comment=`awk -F[:] '$3 == 0' $path | fgrep -v "root"`
+	flag=1
+fi
+
+echo $result
+
+if [ $flag -eq 1 ]
+then
+	echo "[U-5]root 이외의 UID가 '0' 금지:취약"
+	echo $Comment | sed "s/ /\n/"
+fi
+path="/etc/pam.d/su"
+result="root 계정 su 제한:취약:하"
+cat $path | grep -v "#" | grep "pam_wheel.so use_uid" >> /dev/null
+if [ $? -eq 0 ]
+then 
+	result="root 계정 su 제한:양호:하"
+	Wheel=`cat /etc/group | grep ^wheel | awk -F[:] '{ print $4 }'`
+	Comment="wheel group:$Wheel"
+	echo "[U-6]root 계정 su 제한:양호"
+	echo $Comment
+fi
+
+echo $result
+path="/etc/login.defs"
+result="패스워드 최소 길이 설정:양호:중"
+Len=`cat $path | grep "^PASS_MIN_LEN" | awk -F" " '{ print $2 }'`
+if [ $Len -lt 8 ]
+then
+	result="패스워드 최소 길이 설정:취약:중"
+fi
+
+echo $result
+path="/etc/login.defs"
+result="패스워드 최대 사용기간 설정:취약:중"
+Len=`cat $path | grep "^PASS_MAX_DAYS" | awk -F" " '{ print $2 }'`
+if [ $Len -le 90 ]
+then
+	result="패스워드 최소 길이 설정:양호:중"
+fi
+
+echo $result
+path="/etc/login.defs"
+result="패스워드 최소 사용기간 설정:양호:중"
+Len=`cat $path | grep "^PASS_MIN_DAYS" | awk -F" " '{ print $2 }'`
+if [ $Len -ne 1 ]
+then
+	result="패스워드 최소 사용기간 설정:취약:중"
+fi
+
+echo $result
+path="/etc/passwd"
+DontNeed="'adm|lp|sync|shutdown|halt|news|uucp|operator|\
+games|gopher|nfsnobody|squid'"
+result="불필요한 계정 제거:수동판단:하"
+
+Needless=`awk -F: '{ print $1 }' $path | egrep $DontNeed`
+Needless="일반적으로 불필요한 계정유무: $Needless"
+
+Accounts=`cat $path | egrep -v $DontNeed'|root'\
+| grep -v "nologin" | awk -F: '{ print $1 }'`
+Accounts="그 외 수동판단 계정: $Accounts"
+
+#Comment="$Needless"$'\n'$Accounts
+#echo "$Comment"
+
+echo $result
+echo "[U-10]불필요한 계정 제거:수동판단"
+echo $Needless
+echo $Accounts
+path="/etc/group"
+result="관리자 그룹에 최소한의 계정 포함:수동판단:하"
+
+Root=`cat /etc/group | grep ^root | awk -F[:] '{ print $4 }'`
+Comment="root group:$Root"
+
+echo $result
+echo "[U-11]관리자 그룹에 최소한의 계정 포함:수동판단"
+echo $Comment
+Group=`awk -F: '{ print $4 }' /etc/group`
+GID=`cat /etc/passwd | grep -v "^root" | awk -F: '{ print $1 }'` 
+result="계정이 존재하지 않는 GID 금지:양호:하"
+flag=0
+
+for i in $Group
+do
+	echo "$i" | grep -o "$GID" >> /dev/null
+	if [ $? -eq 1 ]
+	then
+		Comment+=$i" "
+		result="계정이 존재하지 않는 GID 금지:취약:하"
+		flag=1
+	fi
+done
+
+echo $result
+
+if [ $flag -eq 1 ]
+then
+	echo $Comment
+fi
+path="/etc/passwd"
+UniqID=`awk -F: '{ print $3 }' $path | sort -n | uniq -c`
+result="동일한 UID 금지:양호:중"
+Line=`echo $UniqID | wc -w`
+odd=1;len=0
+
+for ((odd=1;odd<$Line+1;odd+=2))
+do
+	Number=`echo $UniqID | awk -v odd=$odd -F" " '{ print $odd }'`
+	if [ $Number -ne 1 ]
+	then
+		len=`expr $odd + 1`
+		result="동일한 UID 금지:취약:중"
+		NotUniq+=`echo $UniqID | awk -v len=$len -F" " '{ print $len }'`" "
+	fi
+done
+
+for i in $NotUniq
+do
+	Comment+=`awk -F: '{ print $3,$1}' $path | grep "^$i\b"`" "
+done
+
+echo $result
+
+if [ $len -ne 0 ]
+then
+	echo "[U-13]동일한 UID 금지:취약"
+	echo "동일 UID 사용 계정(UID / Accounts):"$Comment
+fi
+result="사용자 shell 점검:수동판단:하"
+Comment=`cat /etc/passwd | grep -v nologin | awk -F: '{ print $1,$7 }'`
+echo $result
+echo "[U-14]사용자 shell 점검:수동판단"
+echo "$Comment"
+
+result="Session Timeout 설정:양호:하"
+FIND=`cat /etc/profile | grep TMOUT`
+if [ $? -eq 0 ]
+then
+	TIME=`echo $FIND | awk -F= '{ print $2 }'`
+	if [ $TIME -gt 600 ]
+	then
+		result="Session Timeout 설정:취약:하"
+	fi
+else
+	result="Session Timeout 설정:취약:하"
+fi
+
+echo $result
+File=`find ~/ -name *profile -o -name ".login"`
+result="root 홈, 패스 디렉터리 권한 및 패스 설정:양호:상"
+Ban_Dot=`cat $File | grep "^PATH=" | awk -F= '{ print $2 }'`
+echo $Ban_Dot | grep '\.' >> /dev/null
+Boolean=$?
+
+Ban=`cat $File | grep "^PATH=" | awk -F\$ '{ print $1 }'`
+echo $Ban | egrep '\.|:' >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="root 홈, 패스 디렉터리 권한 및 패스 설정:취약:상"
+elif [ $Boolean -eq 0 ]
+then
+	result="root 홈, 패스 디렉터리 권한 및 패스 설정:취약:상"
+fi
+echo $result
+NoOwner=`find / -nouser -o -nogroup 2> /dev/null`
+result="파일 및 디렉터리 소유자 설정:취약:상"
+Word=`echo $NoOwner | wc -w`
+if [ $Word -eq 0 ]
+then
+	result="파일 및 디렉터리 소유자 설정:양호:상"
+else
+	Comment="File List:"$NoOwner
+	echo "[U-17]파일 및 디렉터리 소유자 설정:취약"
+	echo $Comment
+fi
+
+echo $result
+result="/etc/passwd 파일 소유자 및 권한 설정:취약:상"
+find /etc/passwd -user root \( -perm 644 -o -perm 600 \) | fgrep -o /etc/passwd >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="/etc/passwd 파일 소유자 및 권한 설정:양호:상"
+fi
+echo $result
+
+result="/etc/shadow 파일 소유자 및 권한 설정:취약:상"
+find /etc/shadow -user root -perm 400 | fgrep -o /etc/shadow >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="/etc/shadow 파일 소유자 및 권한 설정:양호:상"
+fi
+echo $result
+
+result="/etc/hosts 파일 소유자 및 권한 설정:취약:상"
+find /etc/hosts -user root -perm 600 | fgrep -o /etc/hosts >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="/etc/hosts 파일 소유자 및 권한 설정:양호:상"
+fi
+echo $result
+
+result="/etc/(x)inetd.conf 파일 소유자 및 권한 설정:취약:상"
+find /etc/inetd.conf 2> /dev/null | fgrep -o /etc/inetd.conf >> /dev/null
+A=$?
+find /etc/xinetd.d 2> /dev/null | fgrep -o /etc/xinetd.d >> /dev/null
+B=$?
+find /etc/xinetd.conf 2> /dev/null | fgrep -o /etc/xinetd.conf >> /dev/null
+C=$?
+
+find /etc/xinetd.d -user root -perm 600 2>\
+/dev/null | fgrep -o /etc/xinetd.d >> /dev/null
+BC=$?
+find /etc/xinetd.conf -user root -perm 600 2>\
+/dev/null | fgrep -o /etc/xinetd.conf >> /dev/null
+CB=$?
+
+if [ $A -eq 0 ]
+then
+	find /etc/inetd.conf -user root -perm 600 2>\
+	 /dev/null | fgrep -o /etc/inetd.conf >> /dev/null
+	if [ $? -eq 0 ]; then
+		result="/etc/inetd.conf 파일 소유자 및 권한 설정:양호:상"
+	fi
+elif [[ $B -eq 0 ]] && [[ $C -ne 0 ]]
+then
+	if [ $BC -eq 0 ]; then
+		result="/etc/xinetd.d 파일 소유자 및 권한 설정:양호:상"
+	fi
+elif [[ $C -eq 0 ]] && [[ $B -ne 0 ]]
+then
+	if [ $CB -eq 0 ]; then
+		result="/etc/xinetd.conf 파일 소유자 및 권한 설정:양호:상"
+	fi
+elif [[ $B -eq 0 ]] && [[ $C -eq 0 ]]
+then 
+	if [[ $BC -eq 0 ]] && [[ $CB -eq 0 ]]; then
+		result="/etc/(x)inetd.conf 파일 소유자 및 권한 설정:양호:상"
+	fi
+else
+result="/etc/(x)inetd.conf 파일 소유자 및 권한 설정:양호:상"
+
+fi
+echo $result
+result="/etc/syslog.conf 파일 소유자 및 권한 설정:취약:상"
+find /etc/syslog.conf 2> /dev/null | fgrep -o /etc/syslog.conf >> /dev/null
+if [ $? -eq 0 ]
+then
+	find /etc/syslog.conf -user root \( -perm 644 -o -perm 600 \) 2>\
+	 /dev/null | fgrep -o /etc/syslog.conf >> /dev/null
+	if [ $? -eq 0 ]
+	then	
+		result="/etc/syslog.conf 파일 소유자 및 권한 설정:양호:상"
+	else
+		result="/etc/syslog.conf 파일 소유자 및 권한 설정:취약:상"
+	fi
+else
+	result="/etc/syslog.conf 파일 소유자 및 권한 설정:양호:상"
+fi
+echo $result
+result="/etc/services 파일 소유자 및 권한 설정:취약:상"
+find /etc/services -user root \( -perm 644 -o -perm 600 \) | fgrep -o /etc/services >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="/etc/services 파일 소유자 및 권한 설정:양호:상"
+fi
+echo $result
+
+result="SUID, SGID, Sticky bit 설정파일 점검:수동판단:상"
+Comment=`find / -user root -type f \( -perm -4000 -o -perm -2000 \)\
+ -xdev -exec ls -al {} 2> /dev/null \;`
+echo $result
+echo "[U-24]SUID, SGID, Sticky bit 설정파일 점검:수동판단"
+echo "$Comment"
+result="사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정:양호:상"
+Accounts=`ls /home`
+flag=0
+for ID in $Accounts
+do
+	find /home/$ID/ ! \( -user root -o -user $ID \)\
+	 2> /dev/null >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		RiskID+="/home/"$ID" "
+		flag=1
+	fi
+	RiskPerm=`find /home/$ID -perm -2 -exec ls {} \;`
+	if [ $? -eq 0 ]
+	then
+		FilePath+=$RiskPerm" "
+		flag=1
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	result="사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정:취약:상"
+	Comment=RiskID:$RiskID$'\n'RiskPerm:"$FilePath"
+	echo "[U-25]사용자,시스템 시작파일 및 환경파일 소유자 및 권한 설정:취약"
+	echo "$Comment"
+fi
+
+echo $result
+result="world writable 파일 점검:수동판단:상"
+Comment=`find / -wholename '/proc' -prune -o -wholename '/sys' -prune\
+ -o -type f -perm -0002 -exec ls -l {} \;`
+echo $result
+echo "[U-26]world writable 파일 점검:수동판단"
+echo "$Comment"
+
+result="/dev에 존재하지 않는 device 파일 점검:양호:상"
+Comment=`find /dev -type f -exec ls -l {} \;`
+Count=`find /dev -type f | wc -l`
+
+if [ $Count -ne 0 ]
+then
+	result="/dev에 존재하지 않는 device 파일 점검:취약:상"
+	echo "[U-27]/dev에 존재하지 않는 device 파일 점검:취약"
+	echo "$Comment"
+fi
+
+echo $result
+result="$HOME/.rhosts, hosts.equiv 사용 금지:취약:상"
+Remote="/etc/hosts.equiv"
+if [ -f "$Remote" ]
+then
+	find $Remote -user root -perm 600 | grep $Remote >> /dev/null
+	A=$?
+	find $HOME/.rhosts -user root -perm 600\
+	| grep "$HOME/.rhosts" >> /dev/null
+	B=$?
+	if [[ $A -eq 0 ]] && [[ $B -eq 0 ]]
+	then
+		result="$HOME/.hosts, hosts.equiv 사용 금지:양호:상"
+	fi
+else
+result="$HOME/.hosts, hosts.equiv 사용 금지:양호:상"
+fi
+
+echo $result
+result="접속 IP 및 포트 제한:취약:상"
+Limit="/etc/hosts.deny"
+if [ -f "$Limit" ]
+then
+	cat $Limit | grep -i "ALL:ALL" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="접속 IP 및 포트 제한:양호:상"
+	fi
+fi
+
+echo $result
+result="hosts.lpd 파일 소유자 및 권한 설정:취약:하"
+if [ -f "/etc/hosts.lpd" ]
+then
+	find /etc/hosts.lpd -user root -perm 600 | grep "hosts.lpd" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="hosts.lpd 파일 소유자 및 권한 설정:양호:하"
+	fi
+else
+	result="hosts.lpd 파일 소유자 및 권한 설정:양호:하"
+fi
+
+echo $result
+result="NIS 서비스 비활성화:양호:중"
+ps -ef | egrep "ypserv|ypxfrd|yppasswdd" | grep -v "grep" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="NIS 서비스 비활성화:취약:중"
+fi
+echo $result
+result="UMASK 설정 관리:취약:중"
+UMASK=`umask`
+if [ $UMASK == "0022" ]
+then
+	result="UMASK 설정 관리:양호:중"
+fi
+
+echo $result
+result="홈 디렉터리 소유자 및 권한 설정:취약:중"
+Accounts=`ls /home`
+for ID in $Accounts
+do
+	Home=`cat /etc/passwd | grep "^$ID" | awk -F: '{ print $6 }'`
+	echo $Home | grep "$ID" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		FaultHome+=$ID" "
+	fi
+
+	find /home/$ID -type d -perm -o=w | grep "$ID" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		RiskPerm+=$ID" "
+	fi
+done
+
+Counts=`echo $FaultHome$RiskPerm | wc -w`
+if [ $Counts -eq 0 ]
+then
+	result="홈 디렉터리 소유자 및 권한 설정:양호:중"
+else
+	Comment=FaultHomeID:$FaultHome$'\n'RiskPermID:$RiskPerm
+	echo "[U-33]홈 디렉터리 소유자 및 권한 설정:취약"
+	echo "$Comment"
+fi
+echo $result
+result="홈 디렉터리로 지정한 디렉터리의 존재 관리:양호:중"
+Accounts=`ls /home`
+flag=0
+for ID in $Accounts
+do
+	Home=`cat /etc/passwd | grep "^$ID" | awk -F: '{ print $6 }'`
+	if [ "$Home" == "" ]
+	then
+		result="홈 디렉터리로 지정한 디렉터리의 존재 관리:취약:중"
+		RiskID=$ID" "
+		flag=1
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	Comment="Not exist home:$ID"
+	echo "[U-34]홈 디렉터리로 지정한 디렉터리의 존재 관리:취약"
+	echo $Comment
+fi
+
+echo $result
+result="숨겨진 파일 및 디렉터리 검색 및 제거:수동판단:하"
+Comment=`find / -wholename '/sys' -prune -o -name ".*" -mtime -720 | grep -v ".bash"`
+
+echo $result
+echo "[U-35]숨겨진 파일 및 디렉터리 검색 및 제거:수동판단"
+echo "$Comment"
+inetd="/etc/inetd.conf"
+xinetd="/etc/xinetd.d/finger"
+
+if [ -f "$inetd" ]
+then
+	cat $inetd | grep "^#finger stream tcp" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Finger 서비스 비활성화:양호:상"
+	else
+		result="Finger 서비스 비활성화:취약:상"
+	fi
+
+elif [ -f "$xinetd" ]
+then
+	cat $xinetd | grep "disable" | awk -F= '{ print $2 }' | grep "yes" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Finger 서비스 비활성화:양호:상"
+	else
+		result="Finger 서비스 비활성화:취약:상"
+	fi
+
+else
+	result="Finger 서비스 비활성화:양호:상"
+fi
+
+echo $result
+result="Anonymous FTP 비활성화:취약:상"
+yum list installed | egrep -i "^ftp|^proftp|^vsftp" >> /dev/null
+if [ $? -eq 0 ]
+then
+	FILEpath=`find /etc -name "vsftpd.conf"`
+	if [ -f "$FILEpath" ]
+	then
+		cat $FILEpath | grep -i "^anonymous_enable=NO" >> /dev/null
+		if [ $? -eq 0 ]
+		then
+			result="Anonymous FTP 비활성화:양호:상"
+		fi
+	else
+		cat /etc/passwd | egrep "^ftp|^anonymous" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="Anonymous FTP 비활성화:양호:상"
+		fi
+	fi
+else
+	result="Anonymous FTP 비활성화:양호:상"
+fi
+
+echo $result
+result="r계열 서비스 비활성화:양호:상"
+RiskFile=`find /etc -name rlogin`" "
+RiskFile+=`find /etc -name rsh`" "
+RiskFile+=`find /etc -name rexec`
+flag=0
+for FILE in $RiskFile 
+do
+	if [ -f "$FILE" ]
+	then
+		cat $FILE | grep "disable" | awk -F= '{ print $2 }'\
+		 | grep "yes" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="r계열 서비스 비활성화:취약:상"
+			Risk+=$FILE" "
+			flag=1
+		fi
+	fi
+done		
+
+if [ $flag -eq 1 ]
+then
+	Comment="RiskFile:$Risk"
+	echo "[U-38]r계열 서비스 비활성화:취약"
+	echo $Comment
+fi
+
+echo $result
+result="cron 파일 소유자 및 권한 설정:양호:상"
+if [ -f "/etc/cron.deny" ]
+then
+	find /etc/cron.deny -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "cron.deny" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="cron 파일 소유자 및 권한 설정:취약:상"
+	fi
+fi
+
+if [ -f "/etc/cron.allow" ]
+then
+	find /etc/cron.allow -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "cron.allow" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="cron 파일 소유자 및 권한 설정:취약:상"
+	fi
+fi
+
+echo $result	
+result="DoS 공격에 취약한 서비스 비활성화:양호:상"
+RiskFile=`find /etc -name echo`" "
+RiskFile+=`find /etc -name discard`" "
+RiskFile+=`find /etc -name daytime`" "
+RiskFile+=`find /etc -name chargen`
+flag=0
+for FILE in $RiskFile 
+do
+	if [ -f "$FILE" ]
+	then
+		cat $FILE | grep "disable" | awk -F= '{ print $2 }'\
+		 | grep "yes" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="DoS 공격에 취약한 서비스 비활성화:취약:상"
+			Risk+=$FILE" "
+			flag=1
+		fi
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	Comment="RiskFile:$Risk"
+	echo "[U-40]DoS 공격에 취약한 서비스 비활성화:취약"
+	echo $Comment
+fi
+
+echo $result
+result="NFS 서비스 비활성화:양호:상"
+ps -ef | grep nfsd | grep -v grep >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="NFS 서비스 비활성화:취약:상"
+fi
+
+echo $result
+result="NFS 접근통제:취약:상"
+ps -ef | grep nfsd | grep -v grep >> /dev/null
+if [ $? -eq 0 ]
+then
+	if [ -f "/etc/exports" ]
+	then
+		find /etc/exports -size 0 | grep "/etc/exports" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="NFS 접근통제:수동판단:상"
+		fi
+	fi
+else
+	result="NFS 접근통제:양호:상"
+	
+fi
+
+echo $result
+result="automountd 제거:양호:상"
+ps -ef | grep automount | grep -v grep >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="automountd 제거:취약:상"
+fi
+
+echo $result
+result="RPC 서비스 확인:양호:상"
+flag=0
+Needless=(rpc.cmsd rusersd rstatd rpc.ttdbserverd kcms_server\
+ Walld rpc.nids rpc.ypupdated cachefsd sadmind sprayd\
+ rpc.pcnfsd rexd rpc.rquotad)
+
+for Service in ${Needless[*]}
+do
+	if [ -f "/etc/xinetd.d/$Service" ]
+	then
+		ls -l /etc/xinetd.d/ | grep "$Service" >> /dev/null
+		if [ $? -eq 0 ]
+		then
+			result="RPC 서비스 확인:취약:상"
+			RiskService+=$Service" "
+			flag=1
+		fi
+	fi
+done
+
+if [ $flag -eq 1 ]
+then
+	Comment="불필요한 서비스:$RiskService"
+	echo "[U-44]RPC 서비스 확인:취약"
+	echo $Comment
+fi
+
+echo $result
+result="NIS, NIS+ 점검:양호:상"
+ps -ef | egrep "ypserv|ypbind|ypxfrd|rpc.yppasswdd|rpc.ypupdated"\
+ | grep -v "grep" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="NIS, NIS+ 점검:취약:상"
+fi
+
+echo $result
+result="tftp, talk 서비스 비황성화:양호:상"
+RiskFile=`find /etc -name tftp`" "
+RiskFile+=`find /etc -name talk`" "
+RiskFile+=`find /etc -name ntalk`" " 
+
+for FILE in $RiskFile
+do
+	if [ -f "$FILE" ]
+	then
+		cat $FILE | grep "disable" | awk -F= '{ print $2 }'\
+		 | grep "yes" >> /dev/null
+		if [ $? -ne 0 ]
+		then
+			result="tftp, talk 서비스 비활성화:취약:상"
+		fi
+	fi
+done
+
+ps -ef | egrep "tftp|talk" | grep -v "grep" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="tftp, talk 서비스 비활성화:취약:상"
+fi
+
+echo $result
+result="Sendmail 버전 점검:취약:상"
+Version=`yum list installed | grep sendmail\
+ | awk -F" " '{ print $2 }'\
+ | awk -F. '{ print $1,$2,$3 }'`
+
+Add=`echo $Version | awk -F" " '{ print $1+$2 }'`
+
+if [ $Add -eq 21 ]
+then
+	third=`echo $Version | awk -F" " '{ print $3 }'\
+	| awk -F- '{ print $1 }'`
+	if [ $third -ge 8 ]
+	then
+		result="Sendmail 버전 점검:양호:상"
+	fi
+elif [ $Add -ge 22 ]
+then
+	result="Sendmail 버전 점검:양호:상"
+fi
+
+echo $result
+result="스팸 메일 릴레이 제한:양호:상"
+yum list installed | grep sendmail >> /dev/null
+if [ $? -eq 0 ]
+then
+	cat /etc/mail/sendmail.cf | grep "550 Relaying denied"\
+	| grep "^#R$\*" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="스팸 메일 릴레이 제한:취약:상"
+	fi
+fi
+
+echo $result
+result="일반사용자의 Sendmail 실행 방지:양호:상"
+path=`find /etc -name "sendmail.cf"`
+if [ -f "$path" ]
+then
+	cat $path | fgrep -i "PrivacyOptions"\
+	 | fgrep "restrictqrun" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="일반사용자의 Sendmail 실행 방지:취약:상"
+	fi
+fi
+
+echo $result
+result="DNS 보안 버전 패치:양호:상"
+yum list installed | grep "^bind" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="DNS 보안 버전 패치:수동판단:상"
+	Comment=`named -version`
+	echo "[U-50]DNS 보안 버전 패치:수동판단"
+	echo $Comment
+fi
+
+echo $result
+result="DNS Zone Transfer 설정:취약:상"
+Options=`cat /etc/named.conf | grep ^options | wc -l`
+Zone=`cat /etc/named.conf | grep ^zone | wc -l`
+Add=`expr $Options + $Zone`
+Allow=`cat /etc/named.conf | grep "allow-transfer" | wc -l`
+
+if [ $Add -eq $Allow ]
+then
+	result="DNS Zone Transfer 설정:양호:상"
+fi
+
+echo $result
+result="Apache 디렉터리 리스팅 제거:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	cat $path | grep "Options" | grep -v "#" | grep Indexes >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Apache 디렉터리 리스팅 제거:취약:상"
+	fi
+fi
+
+echo $result
+result="Apache 웹 프로세스 권한 제한:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	cat $path | egrep "^User|^Group" | grep root >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Apache 웹 프로세스 권한 제한:취약:상"
+	fi
+fi
+
+echo $result
+result="Apache 상위 디렉터리 접근 금지:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	cat $path | fgrep "AllowOverride" | grep -v "#"\
+	 | egrep -i -v "AuthConfig$|All$" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Apache 상위 디렉터리 접근 금지:취약:상"
+	fi
+fi
+
+echo $result
+result="Apache 불필요한 파일 제거:양호:상"
+find / -name manual | grep http >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="Apache 불필요한 파일 제거:취약:상"
+fi
+
+echo $result
+result="Apache 링크 사용금지:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	cat $path | grep "Options" | grep -v "#" | grep FollowSymLinks >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Apache 링크 사용금지:취약:상"
+	fi
+fi
+
+echo $result
+result="Apache 파일 업로드 및 다운로드 제한:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	Count=`cat $path | grep "^<Directory" | wc -l`
+	Cnt=`cat $path | grep -i "LimitRequestBody" | wc -l`
+	if [ $Count -gt $Cnt ]
+	then
+		result="Apache 파일 업로드 및 다운로드 제한:취약:상"
+	fi
+fi
+
+echo $result
+result="Apache 웹 서비스 영역의 분리:양호:상"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	cat $path | grep "^DocumentRoot" | grep "htdocs\"$" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="Apache 웹 서비스 영역의 분리:취약:상"
+	fi
+fi
+
+echo $result
+result="ssh 원격접속 허용:양호:중"
+PTS=`who | awk -F" " '{ print $2 }'`
+Confirm=`ps -ef | grep sshd: | grep -v "grep"`
+
+for Ssh in $PTS
+do
+	echo "$Confirm" | grep $Ssh >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ssh 원격접속 허용:취약:중"
+	fi
+done
+
+echo $result
+result="ftp 서비스 확인:양호:하"
+ps -ef | fgrep -v "grep" | fgrep "ftp" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="ftp 서비스 확인:취약:하"
+fi
+
+echo $result
+result="ftp 계정 shell 제한:양호:중"
+Shell=`cat /etc/passwd | grep ^ftp | awk -F: '{ print $7 }'`
+echo $Shell | egrep -v "nologin$|false$" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="ftp 계정 shell 제한:취약:중"
+fi
+
+echo $result
+result="ftpusers 파일 소유자 및 권한 설정:양호:하"
+path=`find /etc -name ftpusers`
+if [ -f "$path" ]
+then
+	find $path -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "ftpusers" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ftpusers 파일 소유자 및 권한 설정:취약:하"
+	fi
+fi
+
+path=`find /etc -name "user_list"`
+if [ -f "$path" ]
+then
+	find $path -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "user_list" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ftpusers 파일 소유자 및 권한 설정:취약:하"
+	fi
+fi
+
+echo $result
+result="ftpusers 파일 설정:양호:중"
+path=`find /etc -name ftpusers`
+if [ -f "$path" ]
+then
+	cat $path | grep ^root >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ftpusers 파일 설정:취약:중"
+	fi
+fi
+
+path=`find /etc -name proftpd.conf`
+if [ -f "$path" ]
+then
+	cat $path | grep -i ^RootLogin | fgrep off >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="ftpusers 파일 설정:취약:중"
+	fi
+fi
+
+echo $result
+result="at 파일 소유자 및 권한 설정:양호:상"
+if [ -f "/etc/at.deny" ]
+then
+	find /etc/at.deny -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "at.deny" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="at 파일 소유자 및 권한 설정:취약:상"
+	fi
+fi
+if [ -f "/etc/at.allow" ]
+then
+	find /etc/at.allow -user root \( -perm 640 -o -perm 600 \)\
+	| fgrep "at.allow" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="at 파일 소유자 및 권한 설정:취약:상"
+	fi
+fi
+
+echo $result	
+result="SNMP 서비스 구동 점검:양호:중"
+ps -ef | fgrep snmp | grep -v "grep" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="SNMP 서비스 구동 점검:취약:중"
+fi
+
+echo $result
+path=`find /etc -name snmpd.conf`
+result="SNMP 서비스 Commnunity String의 복잡성 설정:양호:중"
+if [ -f "$path" ]
+then
+	cat $path | fgrep -v "#" | egrep "public$|private$" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="SNMP 서비스 Commnunity String의 복잡성 설정:취약:중"
+	fi
+fi
+
+echo $result
+result="로그온 시 경고 메시지 제공:양호:하"
+flag=0
+find /etc/motd -size 0 | fgrep motd >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="로그온 시 경고 메시지 제공:취약:하"
+	Comment="/etc/motd"
+	flag=1
+fi
+
+path="/etc/issue.net"
+if [ -f "$path" ]
+then
+	cat $path | grep "^Kernel" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		result="로그온 시 경고 메시지 제공:취약:하"
+		Comment+=" $path"
+		flag=1
+	fi
+fi
+
+echo $result
+
+if [ $flag -eq 1 ]
+then
+	Comment="취약 경로:$Comment"
+	echo "[U-67]로그온 시 경고 메시지 제공:취약"
+	echo $Comment
+fi
+result="NFS 설정파일 접근권한:양호:중"
+path="/etc/exports"
+if [ -f "$path" ]
+then
+	find $path -user root \( -perm 644 -o -perm 640 -o -perm 600 \)\
+	| fgrep "$path" >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="NFS 설정파일 접근권한:취약:중"
+	fi
+fi
+
+echo $result
+result="일반사용자의 Sendmail 실행 방지:양호:상"
+path=`find /etc -name "sendmail.cf"`
+if [ -f "$path" ]
+then
+	cat $path | fgrep -i "PrivacyOptions"\
+	| fgrep novrfy | fgrep noexpn >> /dev/null
+	if [ $? -ne 0 ]
+	then
+		result="일반사용자의 Sendmail 실행 방지:취약:상"
+	fi
+fi
+
+echo $result
+result="Apache 웹서비스 정보 숨김:양호:중"
+path=`find /etc -name httpd.conf`
+
+if [ -f "$path" ]
+then
+	Count=`cat $path | grep "^<Directory" | wc -l`
+	Cnt=`cat $path | grep -i "ServerTokens Prod" | wc -l`
+	if [ $Count -gt $Cnt ]
+	then
+		result="Apache 웹서비스 정보 숨김:취약:중"
+	fi
+fi
+
+echo $result
+result="Shell Shock 패치 관리:취약:상"
+Test=`env x='() { :;}; echo vulnerable' bash -c "echo Check"`
+Cnt=`echo $Test | wc -w`
+if [ $Cnt -eq 1 ]
+then
+	result="Shell Shock 패치 관리:양호:상"
+fi
+
+echo $result
+result="SELinux System Sudo 패치 관리:양호:상"
+path="/etc/selinux/config"
+flag=0
+if [ -f "$path" ]
+then
+	cat $path | grep ^SELINUX= | grep -v "disabled" >> /dev/null
+	if [ $? -eq 0 ]
+	then
+		version=`sudo -V | sed -n '1p' | awk -F" " '{ print $3 }'`
+		for ((i=5;i<20;i++))
+		do
+			echo $version | fgrep "1.8.$i" >> /dev/null
+			if [ $? -eq 0 ]
+			then
+				result="SELinux System Sudo 패치 관리:취약:상"
+				flag=1
+			fi 
+		done
+
+		if [ $version == "1.8.20p1" ]
+		then
+			result="SELinux System Sudo 패치 관리:취약:상"
+			flag=1
+		elif [ $version == "1.7.10p9" ]
+		then
+			result="SELinux System Sudo 패치 관리:취약:상"
+			flag=1
+		fi
+	fi
+fi
+echo $result
+if [ $flag -eq 1 ]
+then
+	sudo -V | sed -n '1p'
+fi
+SAFE_KERNEL="SAFE_KERNEL"
+SAFE_KPATCH="SAFE_KPATCH"
+MITIGATED="MITIGATED"
+VULNERABLE="VULNERABLE"
+
+MITIGATION_ON='CVE-2016-5195 mitigation loaded'
+MITIGATION_OFF='CVE-2016-5195 mitigation unloaded'
+
+
+VULNERABLE_VERSIONS=(
+    # RHEL5
+    "2.6.18-8.1.1.el5"
+    "2.6.18-8.1.3.el5"
+    "2.6.18-8.1.4.el5"
+    "2.6.18-8.1.6.el5"
+    "2.6.18-8.1.8.el5"
+    "2.6.18-8.1.10.el5"
+    "2.6.18-8.1.14.el5"
+    "2.6.18-8.1.15.el5"
+    "2.6.18-53.el5"
+    "2.6.18-53.1.4.el5"
+    "2.6.18-53.1.6.el5"
+    "2.6.18-53.1.13.el5"
+    "2.6.18-53.1.14.el5"
+    "2.6.18-53.1.19.el5"
+    "2.6.18-53.1.21.el5"
+    "2.6.18-92.el5"
+    "2.6.18-92.1.1.el5"
+    "2.6.18-92.1.6.el5"
+    "2.6.18-92.1.10.el5"
+    "2.6.18-92.1.13.el5"
+    "2.6.18-92.1.18.el5"
+    "2.6.18-92.1.22.el5"
+    "2.6.18-92.1.24.el5"
+    "2.6.18-92.1.26.el5"
+    "2.6.18-92.1.27.el5"
+    "2.6.18-92.1.28.el5"
+    "2.6.18-92.1.29.el5"
+    "2.6.18-92.1.32.el5"
+    "2.6.18-92.1.35.el5"
+    "2.6.18-92.1.38.el5"
+    "2.6.18-128.el5"
+    "2.6.18-128.1.1.el5"
+    "2.6.18-128.1.6.el5"
+    "2.6.18-128.1.10.el5"
+    "2.6.18-128.1.14.el5"
+    "2.6.18-128.1.16.el5"
+    "2.6.18-128.2.1.el5"
+    "2.6.18-128.4.1.el5"
+    "2.6.18-128.4.1.el5"
+    "2.6.18-128.7.1.el5"
+    "2.6.18-128.8.1.el5"
+    "2.6.18-128.11.1.el5"
+    "2.6.18-128.12.1.el5"
+    "2.6.18-128.14.1.el5"
+    "2.6.18-128.16.1.el5"
+    "2.6.18-128.17.1.el5"
+    "2.6.18-128.18.1.el5"
+    "2.6.18-128.23.1.el5"
+    "2.6.18-128.23.2.el5"
+    "2.6.18-128.25.1.el5"
+    "2.6.18-128.26.1.el5"
+    "2.6.18-128.27.1.el5"
+    "2.6.18-128.29.1.el5"
+    "2.6.18-128.30.1.el5"
+    "2.6.18-128.31.1.el5"
+    "2.6.18-128.32.1.el5"
+    "2.6.18-128.35.1.el5"
+    "2.6.18-128.36.1.el5"
+    "2.6.18-128.37.1.el5"
+    "2.6.18-128.38.1.el5"
+    "2.6.18-128.39.1.el5"
+    "2.6.18-128.40.1.el5"
+    "2.6.18-128.41.1.el5"
+    "2.6.18-164.el5"
+    "2.6.18-164.2.1.el5"
+    "2.6.18-164.6.1.el5"
+    "2.6.18-164.9.1.el5"
+    "2.6.18-164.10.1.el5"
+    "2.6.18-164.11.1.el5"
+    "2.6.18-164.15.1.el5"
+    "2.6.18-164.17.1.el5"
+    "2.6.18-164.19.1.el5"
+    "2.6.18-164.21.1.el5"
+    "2.6.18-164.25.1.el5"
+    "2.6.18-164.25.2.el5"
+    "2.6.18-164.28.1.el5"
+    "2.6.18-164.30.1.el5"
+    "2.6.18-164.32.1.el5"
+    "2.6.18-164.34.1.el5"
+    "2.6.18-164.36.1.el5"
+    "2.6.18-164.37.1.el5"
+    "2.6.18-164.38.1.el5"
+    "2.6.18-194.el5"
+    "2.6.18-194.3.1.el5"
+    "2.6.18-194.8.1.el5"
+    "2.6.18-194.11.1.el5"
+    "2.6.18-194.11.3.el5"
+    "2.6.18-194.11.4.el5"
+    "2.6.18-194.17.1.el5"
+    "2.6.18-194.17.4.el5"
+    "2.6.18-194.26.1.el5"
+    "2.6.18-194.32.1.el5"
+    "2.6.18-238.el5"
+    "2.6.18-238.1.1.el5"
+    "2.6.18-238.5.1.el5"
+    "2.6.18-238.9.1.el5"
+    "2.6.18-238.12.1.el5"
+    "2.6.18-238.19.1.el5"
+    "2.6.18-238.21.1.el5"
+    "2.6.18-238.27.1.el5"
+    "2.6.18-238.28.1.el5"
+    "2.6.18-238.31.1.el5"
+    "2.6.18-238.33.1.el5"
+    "2.6.18-238.35.1.el5"
+    "2.6.18-238.37.1.el5"
+    "2.6.18-238.39.1.el5"
+    "2.6.18-238.40.1.el5"
+    "2.6.18-238.44.1.el5"
+    "2.6.18-238.45.1.el5"
+    "2.6.18-238.47.1.el5"
+    "2.6.18-238.48.1.el5"
+    "2.6.18-238.49.1.el5"
+    "2.6.18-238.50.1.el5"
+    "2.6.18-238.51.1.el5"
+    "2.6.18-238.52.1.el5"
+    "2.6.18-238.53.1.el5"
+    "2.6.18-238.54.1.el5"
+    "2.6.18-238.55.1.el5"
+    "2.6.18-238.56.1.el5"
+    "2.6.18-274.el5"
+    "2.6.18-274.3.1.el5"
+    "2.6.18-274.7.1.el5"
+    "2.6.18-274.12.1.el5"
+    "2.6.18-274.17.1.el5"
+    "2.6.18-274.18.1.el5"
+    "2.6.18-308.el5"
+    "2.6.18-308.1.1.el5"
+    "2.6.18-308.4.1.el5"
+    "2.6.18-308.8.1.el5"
+    "2.6.18-308.8.2.el5"
+    "2.6.18-308.11.1.el5"
+    "2.6.18-308.13.1.el5"
+    "2.6.18-308.16.1.el5"
+    "2.6.18-308.20.1.el5"
+    "2.6.18-308.24.1.el5"
+    "2.6.18-348.el5"
+    "2.6.18-348.1.1.el5"
+    "2.6.18-348.2.1.el5"
+    "2.6.18-348.3.1.el5"
+    "2.6.18-348.4.1.el5"
+    "2.6.18-348.6.1.el5"
+    "2.6.18-348.12.1.el5"
+    "2.6.18-348.16.1.el5"
+    "2.6.18-348.18.1.el5"
+    "2.6.18-348.19.1.el5"
+    "2.6.18-348.21.1.el5"
+    "2.6.18-348.22.1.el5"
+    "2.6.18-348.23.1.el5"
+    "2.6.18-348.25.1.el5"
+    "2.6.18-348.27.1.el5"
+    "2.6.18-348.28.1.el5"
+    "2.6.18-348.29.1.el5"
+    "2.6.18-348.30.1.el5"
+    "2.6.18-348.31.2.el5"
+    "2.6.18-371.el5"
+    "2.6.18-371.1.2.el5"
+    "2.6.18-371.3.1.el5"
+    "2.6.18-371.4.1.el5"
+    "2.6.18-371.6.1.el5"
+    "2.6.18-371.8.1.el5"
+    "2.6.18-371.9.1.el5"
+    "2.6.18-371.11.1.el5"
+    "2.6.18-371.12.1.el5"
+    "2.6.18-398.el5"
+    "2.6.18-400.el5"
+    "2.6.18-400.1.1.el5"
+    "2.6.18-402.el5"
+    "2.6.18-404.el5"
+    "2.6.18-406.el5"
+    "2.6.18-407.el5"
+    "2.6.18-408.el5"
+    "2.6.18-409.el5"
+    "2.6.18-410.el5"
+    "2.6.18-411.el5"
+    "2.6.18-412.el5"
+
+    # RHEL6
+    "2.6.32-71.7.1.el6"
+    "2.6.32-71.14.1.el6"
+    "2.6.32-71.18.1.el6"
+    "2.6.32-71.18.2.el6"
+    "2.6.32-71.24.1.el6"
+    "2.6.32-71.29.1.el6"
+    "2.6.32-71.31.1.el6"
+    "2.6.32-71.34.1.el6"
+    "2.6.32-71.35.1.el6"
+    "2.6.32-71.36.1.el6"
+    "2.6.32-71.37.1.el6"
+    "2.6.32-71.38.1.el6"
+    "2.6.32-71.39.1.el6"
+    "2.6.32-71.40.1.el6"
+    "2.6.32-131.0.15.el6"
+    "2.6.32-131.2.1.el6"
+    "2.6.32-131.4.1.el6"
+    "2.6.32-131.6.1.el6"
+    "2.6.32-131.12.1.el6"
+    "2.6.32-131.17.1.el6"
+    "2.6.32-131.21.1.el6"
+    "2.6.32-131.22.1.el6"
+    "2.6.32-131.25.1.el6"
+    "2.6.32-131.26.1.el6"
+    "2.6.32-131.28.1.el6"
+    "2.6.32-131.29.1.el6"
+    "2.6.32-131.30.1.el6"
+    "2.6.32-131.30.2.el6"
+    "2.6.32-131.33.1.el6"
+    "2.6.32-131.35.1.el6"
+    "2.6.32-131.36.1.el6"
+    "2.6.32-131.37.1.el6"
+    "2.6.32-131.38.1.el6"
+    "2.6.32-131.39.1.el6"
+    "2.6.32-220.el6"
+    "2.6.32-220.2.1.el6"
+    "2.6.32-220.4.1.el6"
+    "2.6.32-220.4.2.el6"
+    "2.6.32-220.4.7.bgq.el6"
+    "2.6.32-220.7.1.el6"
+    "2.6.32-220.7.3.p7ih.el6"
+    "2.6.32-220.7.4.p7ih.el6"
+    "2.6.32-220.7.6.p7ih.el6"
+    "2.6.32-220.7.7.p7ih.el6"
+    "2.6.32-220.13.1.el6"
+    "2.6.32-220.17.1.el6"
+    "2.6.32-220.23.1.el6"
+    "2.6.32-220.24.1.el6"
+    "2.6.32-220.25.1.el6"
+    "2.6.32-220.26.1.el6"
+    "2.6.32-220.28.1.el6"
+    "2.6.32-220.30.1.el6"
+    "2.6.32-220.31.1.el6"
+    "2.6.32-220.32.1.el6"
+    "2.6.32-220.34.1.el6"
+    "2.6.32-220.34.2.el6"
+    "2.6.32-220.38.1.el6"
+    "2.6.32-220.39.1.el6"
+    "2.6.32-220.41.1.el6"
+    "2.6.32-220.42.1.el6"
+    "2.6.32-220.45.1.el6"
+    "2.6.32-220.46.1.el6"
+    "2.6.32-220.48.1.el6"
+    "2.6.32-220.51.1.el6"
+    "2.6.32-220.52.1.el6"
+    "2.6.32-220.53.1.el6"
+    "2.6.32-220.54.1.el6"
+    "2.6.32-220.55.1.el6"
+    "2.6.32-220.56.1.el6"
+    "2.6.32-220.57.1.el6"
+    "2.6.32-220.58.1.el6"
+    "2.6.32-220.60.2.el6"
+    "2.6.32-220.62.1.el6"
+    "2.6.32-220.63.2.el6"
+    "2.6.32-220.64.1.el6"
+    "2.6.32-220.65.1.el6"
+    "2.6.32-220.66.1.el6"
+    "2.6.32-220.67.1.el6"
+    "2.6.32-279.el6"
+    "2.6.32-279.1.1.el6"
+    "2.6.32-279.2.1.el6"
+    "2.6.32-279.5.1.el6"
+    "2.6.32-279.5.2.el6"
+    "2.6.32-279.9.1.el6"
+    "2.6.32-279.11.1.el6"
+    "2.6.32-279.14.1.bgq.el6"
+    "2.6.32-279.14.1.el6"
+    "2.6.32-279.19.1.el6"
+    "2.6.32-279.22.1.el6"
+    "2.6.32-279.23.1.el6"
+    "2.6.32-279.25.1.el6"
+    "2.6.32-279.25.2.el6"
+    "2.6.32-279.31.1.el6"
+    "2.6.32-279.33.1.el6"
+    "2.6.32-279.34.1.el6"
+    "2.6.32-279.37.2.el6"
+    "2.6.32-279.39.1.el6"
+    "2.6.32-279.41.1.el6"
+    "2.6.32-279.42.1.el6"
+    "2.6.32-279.43.1.el6"
+    "2.6.32-279.43.2.el6"
+    "2.6.32-279.46.1.el6"
+    "2.6.32-358.el6"
+    "2.6.32-358.0.1.el6"
+    "2.6.32-358.2.1.el6"
+    "2.6.32-358.6.1.el6"
+    "2.6.32-358.6.2.el6"
+    "2.6.32-358.6.3.p7ih.el6"
+    "2.6.32-358.11.1.bgq.el6"
+    "2.6.32-358.11.1.el6"
+    "2.6.32-358.14.1.el6"
+    "2.6.32-358.18.1.el6"
+    "2.6.32-358.23.2.el6"
+    "2.6.32-358.28.1.el6"
+    "2.6.32-358.32.3.el6"
+    "2.6.32-358.37.1.el6"
+    "2.6.32-358.41.1.el6"
+    "2.6.32-358.44.1.el6"
+    "2.6.32-358.46.1.el6"
+    "2.6.32-358.46.2.el6"
+    "2.6.32-358.48.1.el6"
+    "2.6.32-358.49.1.el6"
+    "2.6.32-358.51.1.el6"
+    "2.6.32-358.51.2.el6"
+    "2.6.32-358.55.1.el6"
+    "2.6.32-358.56.1.el6"
+    "2.6.32-358.59.1.el6"
+    "2.6.32-358.61.1.el6"
+    "2.6.32-358.62.1.el6"
+    "2.6.32-358.65.1.el6"
+    "2.6.32-358.67.1.el6"
+    "2.6.32-358.68.1.el6"
+    "2.6.32-358.69.1.el6"
+    "2.6.32-358.70.1.el6"
+    "2.6.32-358.71.1.el6"
+    "2.6.32-358.72.1.el6"
+    "2.6.32-358.73.1.el6"
+    "2.6.32-358.111.1.openstack.el6"
+    "2.6.32-358.114.1.openstack.el6"
+    "2.6.32-358.118.1.openstack.el6"
+    "2.6.32-358.123.4.openstack.el6"
+    "2.6.32-431.el6"
+    "2.6.32-431.1.1.bgq.el6"
+    "2.6.32-431.1.2.el6"
+    "2.6.32-431.3.1.el6"
+    "2.6.32-431.5.1.el6"
+    "2.6.32-431.11.2.el6"
+    "2.6.32-431.17.1.el6"
+    "2.6.32-431.20.3.el6"
+    "2.6.32-431.20.5.el6"
+    "2.6.32-431.23.3.el6"
+    "2.6.32-431.29.2.el6"
+    "2.6.32-431.37.1.el6"
+    "2.6.32-431.40.1.el6"
+    "2.6.32-431.40.2.el6"
+    "2.6.32-431.46.2.el6"
+    "2.6.32-431.50.1.el6"
+    "2.6.32-431.53.2.el6"
+    "2.6.32-431.56.1.el6"
+    "2.6.32-431.59.1.el6"
+    "2.6.32-431.61.2.el6"
+    "2.6.32-431.64.1.el6"
+    "2.6.32-431.66.1.el6"
+    "2.6.32-431.68.1.el6"
+    "2.6.32-431.69.1.el6"
+    "2.6.32-431.70.1.el6"
+    "2.6.32-431.71.1.el6"
+    "2.6.32-431.72.1.el6"
+    "2.6.32-431.73.2.el6"
+    "2.6.32-431.74.1.el6"
+    "2.6.32-504.el6"
+    "2.6.32-504.1.3.el6"
+    "2.6.32-504.3.3.el6"
+    "2.6.32-504.8.1.el6"
+    "2.6.32-504.8.2.bgq.el6"
+    "2.6.32-504.12.2.el6"
+    "2.6.32-504.16.2.el6"
+    "2.6.32-504.23.4.el6"
+    "2.6.32-504.30.3.el6"
+    "2.6.32-504.30.5.p7ih.el6"
+    "2.6.32-504.33.2.el6"
+    "2.6.32-504.36.1.el6"
+    "2.6.32-504.38.1.el6"
+    "2.6.32-504.40.1.el6"
+    "2.6.32-504.43.1.el6"
+    "2.6.32-504.46.1.el6"
+    "2.6.32-504.49.1.el6"
+    "2.6.32-504.50.1.el6"
+    "2.6.32-504.51.1.el6"
+    "2.6.32-504.52.1.el6"
+    "2.6.32-573.el6"
+    "2.6.32-573.1.1.el6"
+    "2.6.32-573.3.1.el6"
+    "2.6.32-573.4.2.bgq.el6"
+    "2.6.32-573.7.1.el6"
+    "2.6.32-573.8.1.el6"
+    "2.6.32-573.12.1.el6"
+    "2.6.32-573.18.1.el6"
+    "2.6.32-573.22.1.el6"
+    "2.6.32-573.26.1.el6"
+    "2.6.32-573.30.1.el6"
+    "2.6.32-573.32.1.el6"
+    "2.6.32-573.34.1.el6"
+    "2.6.32-573.35.1.el6"
+    "2.6.32-642.el6"
+    "2.6.32-642.1.1.el6"
+    "2.6.32-642.3.1.el6"
+    "2.6.32-642.4.2.el6"
+    "2.6.32-642.6.1.el6"
+
+    # RHEL7
+    "3.10.0-123.el7"
+    "3.10.0-123.1.2.el7"
+    "3.10.0-123.4.2.el7"
+    "3.10.0-123.4.4.el7"
+    "3.10.0-123.6.3.el7"
+    "3.10.0-123.8.1.el7"
+    "3.10.0-123.9.2.el7"
+    "3.10.0-123.9.3.el7"
+    "3.10.0-123.13.1.el7"
+    "3.10.0-123.13.2.el7"
+    "3.10.0-123.20.1.el7"
+    "3.10.0-229.el7"
+    "3.10.0-229.1.2.el7"
+    "3.10.0-229.4.2.el7"
+    "3.10.0-229.7.2.el7"
+    "3.10.0-229.11.1.el7"
+    "3.10.0-229.14.1.el7"
+    "3.10.0-229.20.1.el7"
+    "3.10.0-229.24.2.el7"
+    "3.10.0-229.26.2.el7"
+    "3.10.0-229.28.1.el7"
+    "3.10.0-229.30.1.el7"
+    "3.10.0-229.34.1.el7"
+    "3.10.0-229.38.1.el7"
+    "3.10.0-229.40.1.el7"
+    "3.10.0-229.42.1.el7"
+    "3.10.0-327.el7"
+    "3.10.0-327.3.1.el7"
+    "3.10.0-327.4.4.el7"
+    "3.10.0-327.4.5.el7"
+    "3.10.0-327.10.1.el7"
+    "3.10.0-327.13.1.el7"
+    "3.10.0-327.18.2.el7"
+    "3.10.0-327.22.2.el7"
+    "3.10.0-327.28.2.el7"
+    "3.10.0-327.28.3.el7"
+    "3.10.0-327.36.1.el7"
+    "3.10.0-327.36.2.el7"
+    "3.10.0-229.1.2.ael7b"
+    "3.10.0-229.4.2.ael7b"
+    "3.10.0-229.7.2.ael7b"
+    "3.10.0-229.11.1.ael7b"
+    "3.10.0-229.14.1.ael7b"
+    "3.10.0-229.20.1.ael7b"
+    "3.10.0-229.24.2.ael7b"
+    "3.10.0-229.26.2.ael7b"
+    "3.10.0-229.28.1.ael7b"
+    "3.10.0-229.30.1.ael7b"
+    "3.10.0-229.34.1.ael7b"
+    "3.10.0-229.38.1.ael7b"
+    "3.10.0-229.40.1.ael7b"
+    "3.10.0-229.42.1.ael7b"
+    "4.2.0-0.21.el7"
+
+    # RHEL5
+    "2.6.24.7-74.el5rt"
+    "2.6.24.7-81.el5rt"
+    "2.6.24.7-93.el5rt"
+    "2.6.24.7-101.el5rt"
+    "2.6.24.7-108.el5rt"
+    "2.6.24.7-111.el5rt"
+    "2.6.24.7-117.el5rt"
+    "2.6.24.7-126.el5rt"
+    "2.6.24.7-132.el5rt"
+    "2.6.24.7-137.el5rt"
+    "2.6.24.7-139.el5rt"
+    "2.6.24.7-146.el5rt"
+    "2.6.24.7-149.el5rt"
+    "2.6.24.7-161.el5rt"
+    "2.6.24.7-169.el5rt"
+    "2.6.33.7-rt29.45.el5rt"
+    "2.6.33.7-rt29.47.el5rt"
+    "2.6.33.7-rt29.55.el5rt"
+    "2.6.33.9-rt31.64.el5rt"
+    "2.6.33.9-rt31.67.el5rt"
+    "2.6.33.9-rt31.86.el5rt"
+
+    # RHEL6
+    "2.6.33.9-rt31.66.el6rt"
+    "2.6.33.9-rt31.74.el6rt"
+    "2.6.33.9-rt31.75.el6rt"
+    "2.6.33.9-rt31.79.el6rt"
+    "3.0.9-rt26.45.el6rt"
+    "3.0.9-rt26.46.el6rt"
+    "3.0.18-rt34.53.el6rt"
+    "3.0.25-rt44.57.el6rt"
+    "3.0.30-rt50.62.el6rt"
+    "3.0.36-rt57.66.el6rt"
+    "3.2.23-rt37.56.el6rt"
+    "3.2.33-rt50.66.el6rt"
+    "3.6.11-rt28.20.el6rt"
+    "3.6.11-rt30.25.el6rt"
+    "3.6.11.2-rt33.39.el6rt"
+    "3.6.11.5-rt37.55.el6rt"
+    "3.8.13-rt14.20.el6rt"
+    "3.8.13-rt14.25.el6rt"
+    "3.8.13-rt27.33.el6rt"
+    "3.8.13-rt27.34.el6rt"
+    "3.8.13-rt27.40.el6rt"
+    "3.10.0-229.rt56.144.el6rt"
+    "3.10.0-229.rt56.147.el6rt"
+    "3.10.0-229.rt56.149.el6rt"
+    "3.10.0-229.rt56.151.el6rt"
+    "3.10.0-229.rt56.153.el6rt"
+    "3.10.0-229.rt56.158.el6rt"
+    "3.10.0-229.rt56.161.el6rt"
+    "3.10.0-229.rt56.162.el6rt"
+    "3.10.0-327.rt56.170.el6rt"
+    "3.10.0-327.rt56.171.el6rt"
+    "3.10.0-327.rt56.176.el6rt"
+    "3.10.0-327.rt56.183.el6rt"
+    "3.10.0-327.rt56.190.el6rt"
+    "3.10.0-327.rt56.194.el6rt"
+    "3.10.0-327.rt56.195.el6rt"
+    "3.10.0-327.rt56.197.el6rt"
+    "3.10.33-rt32.33.el6rt"
+    "3.10.33-rt32.34.el6rt"
+    "3.10.33-rt32.43.el6rt"
+    "3.10.33-rt32.45.el6rt"
+    "3.10.33-rt32.51.el6rt"
+    "3.10.33-rt32.52.el6rt"
+    "3.10.58-rt62.58.el6rt"
+    "3.10.58-rt62.60.el6rt"
+
+    # RHEL7
+    "3.10.0-229.rt56.141.el7"
+    "3.10.0-229.1.2.rt56.141.2.el7_1"
+    "3.10.0-229.4.2.rt56.141.6.el7_1"
+    "3.10.0-229.7.2.rt56.141.6.el7_1"
+    "3.10.0-229.11.1.rt56.141.11.el7_1"
+    "3.10.0-229.14.1.rt56.141.13.el7_1"
+    "3.10.0-229.20.1.rt56.141.14.el7_1"
+    "3.10.0-229.rt56.141.el7"
+    "3.10.0-327.rt56.204.el7"
+    "3.10.0-327.4.5.rt56.206.el7_2"
+    "3.10.0-327.10.1.rt56.211.el7_2"
+    "3.10.0-327.13.1.rt56.216.el7_2"
+    "3.10.0-327.18.2.rt56.223.el7_2"
+    "3.10.0-327.22.2.rt56.230.el7_2"
+    "3.10.0-327.28.2.rt56.234.el7_2"
+    "3.10.0-327.28.3.rt56.235.el7"
+    "3.10.0-327.36.1.rt56.237.el7"
+)
+
+KPATCH_MODULE_NAMES=(
+    "kpatch_3_10_0_327_36_1_1_1"
+    "kpatch_3_10_0_327_36_2_1_1"
+    "kpatch_3_10_0_229_4_2_1_1"
+    "kpatch_3_10_0_327_28_3_1_1"
+    "kpatch_3_10_0_327_28_2_1_1"
+    "kpatch_3_10_0_327_13_1_1_1"
+    "kpatch_3_10_0_327_10_1_1_2"
+    "kpatch_3_10_0_327_4_5_1_1"
+    "kpatch_3_10_0_229_14_1_1_1"
+    "kpatch_3_10_0_229_42_1_1_1"
+    "kpatch_3_10_0_327_22_2_1_2"
+    "kpatch_3_10_0_327_10_1_1_1"
+)
+
+running_kernel=$( uname -r )
+
+# Check supported platform
+if [[ "$running_kernel" != *".el"[5-7]* ]]; then
+    echo -e "${RED}This script is only meant to detect vulnerable kernels on Red Hat Enterprise Linux 5, 6 and 7.${RESET}"
+    exit 4
+fi
+
+# Check kernel if it is vulnerable
+for tested_kernel in "${VULNERABLE_VERSIONS[@]}"; do
+	if [[ "$running_kernel" == *"$tested_kernel"* ]]; then
+	    vulnerable_kernel=${running_kernel}
+	    break
+	fi
+done
+
+# Check if kpatch is installed
+modules=$( lsmod )
+for tested_kpatch in "${KPATCH_MODULE_NAMES[@]}"; do
+    if [[ "$modules" == *"$tested_kpatch"* ]]; then
+	    applied_kpatch=${tested_kpatch}
+	    break
+	fi
+done
+
+# Check mitigation
+mitigated=0
+while read -r line; do
+    if [[ "$line" == *"$MITIGATION_ON"* ]]; then
+        mitigated=1
+    elif [[ "$line" == *"$MITIGATION_OFF"* ]]; then
+        mitigated=0
+    fi
+done < <( dmesg )
+
+# Result interpretation
+result=${VULNERABLE}
+if (( mitigated )); then
+    result=${MITIGATED}
+fi
+if [[ ! "$vulnerable_kernel" ]]; then
+    result=${SAFE_KERNEL}
+elif [[ "$applied_kpatch" ]]; then
+    result=${SAFE_KPATCH}
+fi
+
+# Print result
+if [[ ${result} == "$SAFE_KERNEL" ]]; then
+    result="로컬 권한 상승(Dirty Cow):양호:상"
+#    exit 0
+elif [[ ${result} == "$SAFE_KPATCH" ]]; then
+    result="로컬 권한 상승(Dirty Cow):취약:상"
+    echo "[U-73]로컬 권한 상승(Dirty Cow):취약"
+    Comment="Your kernel is $running_kernel which is normally vulnerable."
+    echo $Comment
+#    exit 1
+elif [[ ${result} == "$MITIGATED" ]]; then
+    result="로컬 권한 상승(Dirty Cow):취약:상"
+    echo "[U-73]로컬 권한 상승(Dirty Cow):취약"
+    Comment="Your kernel is $running_kernel which IS vulnerable.'\n'You have a partial mitigation applied."
+    echo $Comment
+#    exit 2
+else
+    result="로컬 권한 상승(Dirty Cow):취약:상"
+    echo "[U-73]로컬 권한 상승(Dirty Cow):취약"
+    Comment="Your kernel is $running_kernel which IS vulnerable."
+    echo $Comment
+#    exit 3
+fi
+
+echo $result
+path="/etc/syslog.conf"
+find $path -size 0 | fgrep "$path" >> /dev/null
+if [ $? -eq 0 ]
+then
+	result="정책에 따른 시스템 로깅 설정:취약:하"
+else
+	result="정책에 따른 시스템 로깅 설정:수동판단:하"
+	echo "[U-74]정책에 따른 시스템 로깅 설정:수동판단"
+	Comment=`cat $path`
+	echo "$path $Comment" | sed "s/ /\n/"
+fi
+
+echo $result
+
+REPORT="LINUX_REPORT.txt"
+cat $REPORT | egrep -v "상$|중$|하$" > ./CommentLine.txt
+cat $REPORT | egrep "상$|중$|하$" > ./ResultLine.txt
+
+rm -rf $REPORT
